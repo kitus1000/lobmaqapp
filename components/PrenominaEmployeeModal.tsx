@@ -35,6 +35,7 @@ export default function PrenominaEmployeeModal({ isOpen, onClose, employeeData, 
         return {
             status: processedDay?.estatus || 'Sin Rol',
             color: getIncidentColor(processedDay?.estatus),
+            details: processedDay?.detalle,
             checadaIn,
             checadaOut,
             extraHrs: processedDay?.extraHrs || 0,
@@ -143,7 +144,7 @@ export default function PrenominaEmployeeModal({ isOpen, onClose, employeeData, 
                                 </thead>
                                 <tbody className="divide-y divide-zinc-100">
                                     {days.map(day => {
-                                        const { status, color, checadaIn, checadaOut, extraHrs, assumedOut } = evaluateDay(day)
+                                        const { status, color, details, checadaIn, checadaOut, extraHrs, assumedOut } = evaluateDay(day)
                                         const isExtra = extraHrs > 0
                                         return (
                                             <tr key={day.toISOString()} className="hover:bg-zinc-50/50 transition-colors">
@@ -151,11 +152,11 @@ export default function PrenominaEmployeeModal({ isOpen, onClose, employeeData, 
                                                     <span className="font-bold text-zinc-700 capitalize">{format(day, 'EEEE', { locale: es })}</span>
                                                     <div className="text-xs text-zinc-400 font-medium mt-0.5">{format(day, 'dd MMM yyyy', { locale: es })}</div>
                                                 </td>
-                                                <td className="px-4 py-3">
-                                                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] uppercase tracking-wide ${color}`}>
-                                                        {status}
-                                                    </span>
-                                                </td>
+                                                 <td className="px-4 py-3">
+                                                     <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] uppercase tracking-wide ${color}`}>
+                                                         {details ? (details.split(' (')[0]) : status}
+                                                     </span>
+                                                 </td>
                                                 <td className="px-4 py-3 text-center">
                                                     {checadaIn && checadaIn.timestamp_checada ? (
                                                         <span className="font-mono text-xs font-bold text-zinc-700 bg-zinc-100 px-1.5 py-0.5 rounded">

@@ -111,7 +111,6 @@ export default function NuevaPlantillaPage() {
                 body_html: bodyEditor?.getHTML() || '',
                 header_html: showHeader ? headerEditor?.getHTML() || '' : '',
                 footer_html: showFooter ? footerEditor?.getHTML() || '' : '',
-                blocks: [], // Legacy blocks removed
                 page_settings: { margins }
             }
             const { error } = await supabase.from('document_templates').insert(payload)

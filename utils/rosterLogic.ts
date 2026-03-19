@@ -75,8 +75,16 @@ export function calculateDailyStatus(
     const targetStr = format(targetDate, 'yyyy-MM-dd')
 
     // ── 0. DESCANSO GLOBAL O FESTIVO (MÁXIMA PRIORIDAD) ──────────────────
-    const esFestivo = festivos.includes(targetStr)
-    const esDescansoGlobal = descansosGlobales.includes(targetStr)
+    const esFestivo = festivos.some(f => {
+        if (!f) return false
+        const fStr = typeof f === 'string' && f.includes('T') ? f.split('T')[0] : f
+        return fStr === targetStr
+    })
+    const esDescansoGlobal = descansosGlobales.some(d => {
+        if (!d) return false
+        const dStr = typeof d === 'string' && d.includes('T') ? d.split('T')[0] : d
+        return dStr === targetStr
+    })
 
     if (esFestivo || esDescansoGlobal) {
         // Requerir ENTRADA o SALIDA para considerarlo laborado en festivo/descanso
@@ -93,7 +101,7 @@ export function calculateDailyStatus(
         }
 
         return {
-            status: esFestivo ? 'Incidencia' : 'Descanso', // El reporte lo tratará como festivo si dice 'Festivo' en details
+            status: 'Descanso', 
             label: esFestivo ? 'FES' : 'D*',
             color: esFestivo ? 'bg-indigo-700 text-white' : 'bg-zinc-800 text-white',
             details: esFestivo ? 'Día Festivo (Oficial)' : 'Descanso Global Forzoso'
@@ -117,28 +125,31 @@ export function calculateDailyStatus(
         const lowerTipo = tipoIncRaw.toLowerCase().trim()
         let lbl = tipoIncRaw.substring(0, 3).toUpperCase()
 
+        // Asignar label basado en palabras clave
         if (lowerTipo.includes('falt')) lbl = 'F'
         else if (lowerTipo.includes('permiso sin goce')) lbl = 'PSG'
         else if (lowerTipo.includes('permiso con goce')) lbl = 'PCG'
         else if (lowerTipo.includes('vacac')) lbl = 'VAC'
-        else if (lowerTipo.includes('incapa')) lbl = 'INC'
+        else if (lowerTipo.includes('incapa') || lowerTipo.includes('enfermedad') || lowerTipo.includes('médic')) lbl = 'INC'
         else if (lowerTipo.includes('suspens')) lbl = 'SUS'
         else if (lowerTipo.includes('permis')) lbl = 'PER'
         else if (lowerTipo.includes('asisten')) lbl = 'A'
         else if (lowerTipo.includes('descanso')) lbl = 'D'
+        else if (lowerTipo.includes('económ')) lbl = 'ECO'
+
+        // Categorización de Estatus
+        let finalStatus: DailyStatus['status'] = 'Incidencia'
+        if (lowerTipo.includes('asisten')) finalStatus = 'Asistencia'
+        else if (lowerTipo.includes('sin goce')) finalStatus = 'Permiso Sin Goce'
+        else if (lowerTipo.includes('con goce') || lowerTipo.includes('económ')) finalStatus = 'Permiso Con Goce'
+        else if (lowerTipo.includes('falt')) finalStatus = 'Falta'
+        else if (lowerTipo.includes('descanso')) finalStatus = 'Descanso'
+        else if (lowerTipo.includes('suspensi')) finalStatus = 'Suspensión'
+        else if (lowerTipo.includes('incapaci') || lowerTipo.includes('enfermedad') || lowerTipo.includes('médic')) finalStatus = 'Incapacidad'
+        else if (lowerTipo.includes('vacac')) finalStatus = 'Vacaciones'
 
         return {
-            status: (
-                lowerTipo.includes('asisten') ? 'Asistencia' :
-                    lowerTipo.includes('permiso sin goce') ? 'Permiso Sin Goce' :
-                        lowerTipo.includes('falt') ? 'Falta' :
-                            lowerTipo.includes('descanso') ? 'Descanso' :
-                                lowerTipo.includes('suspensi') ? 'Suspensión' :
-                                    lowerTipo.includes('incapaci') ? 'Incapacidad' :
-                                        lowerTipo.includes('vacac') ? 'Vacaciones' :
-                                            lowerTipo.includes('permiso con goce') ? 'Permiso Con Goce' :
-                                                'Incidencia'
-            ) as any,
+            status: finalStatus,
             label: lbl,
             color: getIncidentColor(tipoIncRaw),
             details: tipoIncRaw + ` (${incident.fecha_inicio.split('T')[0]} – ${incident.fecha_fin.split('T')[0]})`

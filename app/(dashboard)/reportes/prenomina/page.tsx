@@ -38,13 +38,17 @@ function calcAttendance(
     let esAniversario = false
     let yearsOfService = 0
     if (fechaIngreso) {
+        // Use local parts to avoid TZ shifts if string is "YYYY-MM-DD"
         const ingDate = parseISO(fechaIngreso)
-        const dayIng = ingDate.getDate()
-        const monthIng = ingDate.getMonth()
+        const dayIng = ingDate.getUTCDate()
+        const monthIng = ingDate.getUTCMonth()
+        
+        // Initial years based on end date
         yearsOfService = differenceInYears(parseISO(endDate), ingDate)
 
         for (const day of days) {
-            if (day.getDate() === dayIng && day.getMonth() === monthIng) {
+            // Check anniversary on this specific day
+            if (day.getUTCDate() === dayIng && day.getUTCMonth() === monthIng) {
                 esAniversario = true
                 yearsOfService = differenceInYears(day, ingDate)
                 break
@@ -83,7 +87,11 @@ function calcAttendance(
         }
 
         const dayStr = format(day, 'yyyy-MM-dd')
-        const esFestivo = festivos.includes(dayStr)
+        const esFestivo = (festivos || []).some(f => {
+            if (!f) return false
+            const fStr = typeof f === 'string' && f.includes('T') ? f.split('T')[0] : f
+            return fStr === dayStr
+        })
 
         if (esFestivo && (s === 'Asistencia' || s === 'Retardo')) {
             diasFestivosTrabajados++
