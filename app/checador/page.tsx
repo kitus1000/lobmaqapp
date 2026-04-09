@@ -172,8 +172,16 @@ export default function ChecadorKiosko() {
                 .eq('numero_empleado', idManual)
                 .single()
 
-            if (error || !emp) {
-                setErrorMsg('ID inválido. No se encontró al empleado en la base de datos.')
+            if (error) {
+                console.error('Error al buscar empleado:', error)
+                setErrorMsg(`Error de base de datos: ${error.message} (Código: ${error.code})`)
+                setEstado('ERROR')
+                setTimeout(resetFlujo, 4000)
+                return
+            }
+
+            if (!emp) {
+                setErrorMsg(`N° de Empleado "${idManual}" no encontrado. Verifica en el directorio de personal.`)
                 setEstado('ERROR')
                 setTimeout(resetFlujo, 4000)
                 return
