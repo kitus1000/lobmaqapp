@@ -158,6 +158,22 @@ export default function ChecadorKiosko() {
         }
     }
 
+    const handleDiag = async () => {
+        setEstado('PROCESANDO')
+        try {
+            const { count, error } = await supabase.from('empleados').select('*', { count: 'exact', head: true })
+            const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'No URL'
+            if (error) {
+                alert(`FALLO DE CONEXIÓN:\n\nError: ${error.message}\nDB URL: ${url}`)
+            } else {
+                alert(`CONEXIÓN EXITOSA:\n\nEmpleados visibles: ${count}\nBase de Datos: ${url}\n\nSi aquí ves 0 empleados, es que esta web está conectada a una base de datos vacía.`)
+            }
+        } catch (e: any) {
+            alert(`ERROR CRÍTICO:\n${e.message}`)
+        }
+        setEstado('IDLE')
+    }
+
     const handleChecar = async () => {
         if (!tipoSeleccionado) return
         if (!idManual) return
@@ -449,8 +465,16 @@ export default function ChecadorKiosko() {
             `}} />
 
             {/* Debug Info (Pequeño, abajo) */}
-            <div className="absolute bottom-1 right-2 text-[8px] text-zinc-800 font-mono opacity-20 pointer-events-none uppercase">
-                v1.2.P - DB Connected: {isOnline ? 'YES' : 'NO'} | {process.env.NEXT_PUBLIC_SUPABASE_URL?.split('.')[0].slice(-5)}
+            <div className="absolute bottom-1 left-2 flex items-center gap-3">
+                <button 
+                    onClick={handleDiag}
+                    className="text-[8px] bg-zinc-800 text-white px-2 py-0.5 rounded opacity-40 hover:opacity-100 transition-opacity uppercase font-bold"
+                >
+                    Diagnóstico
+                </button>
+                <div className="text-[8px] text-zinc-800 font-mono opacity-20 pointer-events-none uppercase">
+                    v1.2.P - DB Connected: {isOnline ? 'YES' : 'NO'} | {process.env.NEXT_PUBLIC_SUPABASE_URL?.split('.')[0].slice(-5)}
+                </div>
             </div>
         </div>
     )
