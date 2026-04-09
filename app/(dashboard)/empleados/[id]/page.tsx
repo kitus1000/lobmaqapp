@@ -127,37 +127,51 @@ export default function EmpleadoDetallePage() {
         setLoading(true)
 
         try {
-            const { data, error } = await supabase
+            // 1. Fetch main employee record with initial join attempt
+            let { data, error } = await supabase
                 .from('empleados')
-                .select(`
-                *,
-                empleado_domicilio(*),
-                empleado_ingreso(*),
-                empleado_banco(*),
-                empleado_salarios(*)
-            `)
+                .select('*, empleado_domicilio(*), empleado_ingreso(*), empleado_banco(*), empleado_salarios(*)')
                 .eq('id_empleado', id)
                 .single()
 
-            if (error) throw error
+            if (error) {
+                console.warn('Main join fetch failed, trying individual fetches...', error.message)
+                
+                // Fallback: Fetch basic data first
+                const { data: basic, error: basicErr } = await supabase
+                    .from('empleados')
+                    .select('*')
+                    .eq('id_empleado', id)
+                    .single()
+                
+                if (basicErr) throw basicErr
+                data = basic
+
+                // Fetch joining date
+                const { data: ing } = await supabase.from('empleado_ingreso').select('*').eq('id_empleado', id).maybeSingle()
+                data.empleado_ingreso = ing
+
+                // Fetch address
+                const { data: dom } = await supabase.from('empleado_domicilio').select('*').eq('id_empleado', id).maybeSingle()
+                data.empleado_domicilio = dom
+
+                // Fetch bank info
+                const { data: bank } = await supabase.from('empleado_banco').select('*').eq('id_empleado', id).maybeSingle()
+                data.empleado_banco = bank
+
+                // Fetch salary history
+                const { data: sal } = await supabase.from('empleado_salarios').select('*').eq('id_empleado', id).order('fecha_inicio_vigencia', { ascending: false })
+                data.empleado_salarios = sal || []
+            }
 
             if (data) {
                 processEmpleadoData(data)
             }
         } catch (error: any) {
-            console.error('Error fetching full employee profile:', error)
-            // Fallback: Fetch basic data if join fails
-            const { data: basicData, error: basicError } = await supabase
-                .from('empleados')
-                .select('*')
-                .eq('id_empleado', id)
-                .single()
-
-            if (!basicError && basicData) {
-                processEmpleadoData(basicData)
-            }
+            console.error('Critical Error fetching employee profile:', error)
+            alert('Error al cargar perfil: ' + error.message)
         } finally {
-            // Fetch also roles separately to avoid join complexity
+            // Fetch roles separately (this one is already robust)
             const { data: rolesData } = await supabase
                 .from('empleado_roles')
                 .select('id_empleado_rol, id_tipo_rol, fecha_inicio, cat_tipos_rol(tipo_rol, dias_trabajo, dias_descanso)')
@@ -168,6 +182,7 @@ export default function EmpleadoDetallePage() {
             const rolRec = rolesData?.[0] || null
             setRolActivo(rolRec)
             if (rolRec) {
+                const tr = Array.isArray(rolRec.cat_tipos_rol) ? rolRec.cat_tipos_rol[0] : rolRec.cat_tipos_rol
                 setRolForm({ id_tipo_rol: rolRec.id_tipo_rol, fecha_inicio: rolRec.fecha_inicio })
                 setTipoAsignacion('rol')
             } else {
