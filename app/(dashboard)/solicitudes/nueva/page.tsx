@@ -129,38 +129,45 @@ export default function NuevaSolicitudPage() {
 
                 balances.forEach((b: any) => {
                     const periodLabel = b.cat_periodos_vacacionales?.periodo || ''
-                    // Flexible parse: remove spaces, split by hyphen
                     const normalized = periodLabel.replace(/\s/g, '')
-                    const startYearStr = normalized.split('-')[0] // "2024"
-                    const earnedYear = parseInt(startYearStr) + 1 // Earned AFTER service year
+                    const startYearStr = normalized.split('-')[0]
+                    const earnedYear = parseInt(startYearStr) + 1 
 
                     if (!isNaN(earnedYear)) {
                         const earnedDate = new Date(ingresoDate)
                         earnedDate.setFullYear(earnedYear)
 
-                        // Expiration: Earned + 12 months (Strict 1 year validity)
                         const expirationDate = new Date(earnedDate)
                         expirationDate.setMonth(expirationDate.getMonth() + 12)
 
-                        // If NOT expired (Now < Expiration), include it
-                        // Optional: Add 1 day buffer if needed, but user asked for strict.
-                        if (now < expirationDate) {
+                        // ONLY include if anniversary HAS PASSED (Earned) AND is NOT EXPIRED
+                        if (now >= earnedDate && now < expirationDate) {
                             totalValid += (b.dias_asignados - b.dias_tomados)
+                        } else if (now < earnedDate) {
+                            // Period is future/unearned
                         } else {
                             totalExpired += (b.dias_asignados - b.dias_tomados)
                         }
                     } else {
-                        // Fallback if period format unknown
                         totalValid += (b.dias_asignados - b.dias_tomados)
                     }
                 })
-            } else {
-                // Fallback if no admission date
-                totalValid = balances.reduce((acc: number, curr: any) => acc + (curr.dias_asignados - curr.dias_tomados), 0)
-            }
 
-            setBalanceDisponible(Math.max(0, totalValid))
-            setBalanceExpirado(Math.max(0, totalExpired))
+                // Filter correction periods to only show those that are actually active or unexpired
+                const activeCorrectionPeriods = balances.filter((b: any) => {
+                    const periodLabel = b.cat_periodos_vacacionales?.periodo || ''
+                    const startYear = parseInt(periodLabel.split('-')[0])
+                    if (isNaN(startYear)) return true
+
+                    const earned = new Date(ingresoDate)
+                    earned.setFullYear(startYear + 1)
+                    const expire = new Date(earned)
+                    expire.setMonth(expire.getMonth() + 12)
+                    
+                    // Show only if not far in the future (allow current period + previous)
+                    return now >= earned || (now.getFullYear() === startYear)
+                })
+                setCorrectionPeriods(activeCorrectionPeriods)
         } else {
             // 2. If no DB balances, calculate theoretical
             let debugInfo = ''
