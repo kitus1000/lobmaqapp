@@ -165,54 +165,16 @@ export default function ChecadorKiosko() {
         setEstado('PROCESANDO')
 
         try {
-            // Parseamos a número para asegurar coincidencia con el tipo INT de la DB
-            const idNumerico = parseInt(idManual, 10)
-            console.log('--- DEBUG CHECADOR ---')
-            console.log('Buscando ID Manual:', idManual)
-            console.log('ID Numérico parseado:', idNumerico)
-
-            // Validar existencia de empleado en BD real
-            // Usamos una consulta más simple y robusta
-            const { data: emp, error } = await supabase
-                .from('empleados')
-                .select('id_empleado, nombre, apellido_paterno, apellido_materno, estado_empleado, id_turno')
-                .eq('numero_empleado', idNumerico)
-                .maybeSingle()
-
-            if (error) {
-                console.error('Error detallado:', error)
-                setErrorMsg(`Error DB: ${error.message} (${error.code})`)
-                setEstado('ERROR')
-                setTimeout(resetFlujo, 5000)
-                return
-            }
-
-            if (!emp) {
-                setErrorMsg(`El número "${idManual}" no existe en el sistema. Prueba con el 20500 (Jesus Lopez).`)
-                setEstado('ERROR')
-                setTimeout(resetFlujo, 5000)
-                return
-            }
-
-            if (emp.estado_empleado !== 'Activo') {
-                setErrorMsg('Este empleado se encuentra dado de BAJA del sistema.')
-                setEstado('ERROR')
-                setTimeout(resetFlujo, 4000)
-                return
-            }
-
-            // Empleado existe y es activo
-            setEmpleadoValidado(emp)
             const configTipo = TIPOS_CHECADA.find(t => t.id === tipoSeleccionado)
 
             if (configTipo?.requiereCodigo) {
                 setEstado('REQUIERE_CODIGO')
             } else {
-                procesarExito(emp)
+                // Pasamos nulo porque la API (/api/checadas) hará toda la validación de forma segura
+                procesarExito(null)
             }
-
         } catch (e: any) {
-            setErrorMsg('Error de conexión al validar ID.')
+            setErrorMsg('Error de interfaz.')
             setEstado('ERROR')
             setTimeout(resetFlujo, 4000)
         }
@@ -225,7 +187,7 @@ export default function ChecadorKiosko() {
         }
 
         setErrorMsg('')
-        procesarExito(empleadoValidado, codigoAutorizacion)
+        procesarExito(null, codigoAutorizacion)
     }
 
     // --- Renders ---
