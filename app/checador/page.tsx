@@ -165,11 +165,14 @@ export default function ChecadorKiosko() {
         setEstado('PROCESANDO')
 
         try {
+            // Parseamos a número para asegurar coincidencia con el tipo INT de la DB
+            const idNumerico = parseInt(idManual, 10)
+
             // Validar existencia de empleado en BD real
             const { data: emp, error } = await supabase
                 .from('empleados')
-                .select('id_empleado, nombre, apellido_paterno, apellido_materno, estado_empleado')
-                .eq('numero_empleado', idManual)
+                .select('id_empleado, nombre, apellido_paterno, apellido_materno, estado_empleado, id_turno')
+                .or(`numero_empleado.eq.${idNumerico},numero_empleado.eq.${idManual}`)
                 .single()
 
             if (error) {
@@ -478,6 +481,11 @@ export default function ChecadorKiosko() {
                     to { width: 0%; }
                 }
             `}} />
+
+            {/* Debug Info (Pequeño, abajo) */}
+            <div className="absolute bottom-1 right-2 text-[8px] text-zinc-800 font-mono opacity-20 pointer-events-none uppercase">
+                v1.2.P - DB Connected: {isOnline ? 'YES' : 'NO'} | {process.env.NEXT_PUBLIC_SUPABASE_URL?.split('.')[0].slice(-5)}
+            </div>
         </div>
     )
 }

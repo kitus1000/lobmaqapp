@@ -45,10 +45,12 @@ export async function POST(request: Request) {
         const timezone = config?.timezone || 'America/Mexico_City'
 
         // 1. Buscar Empleado por número de empleado (MVP usa idManual que es el numero_empleado)
+        const idNumerico = parseInt(id_empleado_token, 10)
+        
         const { data: emp, error: empError } = await supabase
             .from('empleados')
             .select('id_empleado, nombre, apellido_paterno, apellido_materno, estado_empleado, id_turno')
-            .eq('numero_empleado', id_empleado_token)
+            .or(`numero_empleado.eq.${idNumerico},numero_empleado.eq.${id_empleado_token}`)
             .single()
 
         if (empError || !emp) {

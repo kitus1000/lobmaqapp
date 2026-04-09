@@ -1,5 +1,8 @@
+
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+
+export const dynamic = 'force-dynamic'
 
 export async function GET() {
     try {
@@ -7,28 +10,35 @@ export async function GET() {
         const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
         const supabase = createClient(supabaseUrl, supabaseKey)
 
-        // 1. Check cat_puestos structure
-        const { data: puestos, error: puestosErr } = await supabase
-            .from('cat_puestos')
+        // 1. Probar conexión y ver columnas de 'empleados'
+        const { data: cols, error: colsError } = await supabase
+            .rpc('get_table_columns', { table_name: 'empleados' })
+            .catch(() => ({ data: null, error: { message: 'RPC not found' } }))
+
+        // Si el RPC falla (muy probable), probamos un select limitado
+        const { data: sample, error: sampleError } = await supabase
+            .from('empleados')
             .select('*')
             .limit(1)
 
-        // 2. Check table definition via RPC if possible, or just raw query
-        // Since we can't run raw SQL easily via client without an RPC, 
-        // we'll try to insert a dummy record and see the error or columns.
+        // 2. Verificar tablas de checador
+        const { count: checadasCount } = await supabase.from('checadas').select('*', { count: 'exact', head: true })
+        const { data: turnos } = await supabase.from('turnos').select('id, nombre').limit(5)
 
         return NextResponse.json({
-            status: 'ok',
-            puestosColumns: puestos && puestos.length > 0 ? Object.keys(puestos[0]) : [],
-            puestosError: puestosErr,
-            firstPuesto: puestos && puestos[0] ? puestos[0] : null,
-            env: {
-                url: supabaseUrl ? `${supabaseUrl.substring(0, 12)}...${supabaseUrl.substring(supabaseUrl.length - 12)}` : 'not set',
-                projectId: supabaseUrl ? supabaseUrl.split('//')[1].split('.')[0] : 'not found',
-                key: supabaseKey ? 'set' : 'not set'
+            ok: true,
+            diagnostico: {
+                conexion: !!sample || !!sampleError,
+                empleados_visto: !!sample,
+                error_empleados: sampleError || null,
+                columnas_posibles: sample ? Object.keys(sample[0] || {}) : [],
+                resumen_tablas: {
+                    checadas: checadasCount,
+                    turnos_ejemplo: turnos
+                }
             }
         })
     } catch (e: any) {
-        return NextResponse.json({ status: 'ex', error: e.message })
+        return NextResponse.json({ ok: false, error: e.message })
     }
 }
