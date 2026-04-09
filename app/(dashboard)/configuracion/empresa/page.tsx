@@ -41,7 +41,11 @@ export default function EmpresaConfigPage() {
         setSaving(true)
         try {
             // Guardar local para compatibilidad rápida en algunos componentes
-            localStorage.setItem('rh_config_empresa', JSON.stringify(config))
+            try {
+                localStorage.setItem('rh_config_empresa', JSON.stringify(config))
+            } catch (storageError) {
+                console.warn('Local storage quota reached, ignoring local cache for logo.')
+            }
 
             // Guardar en Supabase para el API y persistencia real
             const { error } = await supabase

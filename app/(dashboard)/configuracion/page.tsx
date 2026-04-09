@@ -71,7 +71,11 @@ export default function ConfiguracionPage() {
             if (error) throw error
 
             // Also update localStorage for immediate availability in other tabs/components
-            localStorage.setItem('rh_config_empresa', JSON.stringify(updates))
+            try {
+                localStorage.setItem('rh_config_empresa', JSON.stringify(updates))
+            } catch (e) {
+                console.warn('Local storage quota exceeded, but data is safe in the cloud.')
+            }
 
             alert('Configuración guardada correctamente.')
         } catch (e: any) {
