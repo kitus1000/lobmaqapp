@@ -11,15 +11,11 @@ export async function GET() {
         const supabase = createClient(supabaseUrl, supabaseKey)
 
         // 1. Probar conexión y ver columnas de 'empleados'
-        const { data: cols, error: colsError } = await supabase
-            .rpc('get_table_columns', { table_name: 'empleados' })
-            .catch(() => ({ data: null, error: { message: 'RPC not found' } }))
-
-        // Si el RPC falla (muy probable), probamos un select limitado
+        // 1. Probar conexión y ver lista de empleados
         const { data: sample, error: sampleError } = await supabase
             .from('empleados')
-            .select('*')
-            .limit(1)
+            .select('id_empleado, nombre, numero_empleado, id_turno')
+            .limit(10)
 
         // 2. Verificar tablas de checador
         const { count: checadasCount } = await supabase.from('checadas').select('*', { count: 'exact', head: true })

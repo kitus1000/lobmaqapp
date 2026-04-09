@@ -54,11 +54,11 @@ export async function POST(request: Request) {
             .maybeSingle()
 
         if (empError || !emp) {
-            console.error('Error buscando empleado 20500:', empError)
+            console.error('Error buscando empleado:', empError)
             return NextResponse.json({ 
                 ok: false, 
                 error_code: 'ID_INVALIDO', 
-                mensaje: `No se encontró al empleado. ${empError ? 'Error real: ' + empError.message : 'El número no existe en la tabla.'}` 
+                mensaje: `EL IDENTIFICADOR "${id_empleado_token}" NO ESTÁ REGISTRADO. Verifica que el número sea correcto en el catálogo de personal. ${empError ? '(DB: ' + empError.message + ')' : ''}` 
             }, { status: 400, headers: corsHeaders })
         }
         if (emp.estado_empleado !== 'Activo') {
