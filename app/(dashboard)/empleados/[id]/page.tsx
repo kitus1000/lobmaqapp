@@ -92,14 +92,23 @@ export default function EmpleadoDetallePage() {
     async function fetchCatalogs() {
         const { data: causasBaja } = await supabase.from('cat_causas_baja').select('*').eq('activo', true)
         const { data: causasImss } = await supabase.from('cat_causas_baja_imss').select('*').eq('activo', true)
-        const { data: tipoBaja } = await supabase.from('cat_tipos_solicitud').select('id_tipo_solicitud').eq('tipo_solicitud', 'Baja de Personal').single()
-        const { data: tipoReingreso } = await supabase.from('cat_tipos_solicitud').select('id_tipo_solicitud').eq('tipo_solicitud', 'Reingreso de Personal').single()
+        
+        // Flexible search for solicitud types
+        const { data: tipos } = await supabase.from('cat_tipos_solicitud').select('id_tipo_solicitud, tipo_solicitud').eq('activo', true)
+        
+        const findId = (names: string[]) => {
+            const match = tipos?.find(t => names.some(n => t.tipo_solicitud.toLowerCase().includes(n.toLowerCase())))
+            return match?.id_tipo_solicitud || null
+        }
+
+        const idBaja = findId(['Baja de Personal', 'Baja'])
+        const idReingreso = findId(['Reingreso de Personal', 'Reingreso'])
 
         setCatalogs({
             causasBaja: causasBaja || [],
             causasImss: causasImss || [],
-            tipoSolicitudBajaId: tipoBaja?.id_tipo_solicitud || null,
-            tipoSolicitudReingresoId: tipoReingreso?.id_tipo_solicitud || null
+            tipoSolicitudBajaId: idBaja,
+            tipoSolicitudReingresoId: idReingreso
         })
 
         // Fetch turnos
@@ -217,14 +226,17 @@ export default function EmpleadoDetallePage() {
 
         let reingresoId = catalogs.tipoSolicitudReingresoId
 
-        // Fallback: Fetch if missing (e.g. stale state or connection issue on load)
+        // Fallback: Fetch if missing (flexibly)
         if (!reingresoId) {
-            const { data } = await supabase.from('cat_tipos_solicitud').select('id_tipo_solicitud').eq('tipo_solicitud', 'Reingreso').single()
-            if (data) reingresoId = data.id_tipo_solicitud
+            const { data } = await supabase.from('cat_tipos_solicitud')
+                .select('id_tipo_solicitud')
+                .or('tipo_solicitud.ilike.%reingreso%')
+                .limit(1)
+            if (data?.[0]) reingresoId = data[0].id_tipo_solicitud
         }
 
         if (!reingresoId) {
-            alert('Error: No se encontró el tipo de solicitud "Reingreso" en el sistema. Intente recargar la página.')
+            alert('Error: No se encontró el tipo de solicitud de "Reingreso" en la base de datos. Por favor, asegúrese de que el catálogo de tipos de solicitud incluya "Reingreso de Personal".')
             return
         }
 
@@ -257,14 +269,25 @@ export default function EmpleadoDetallePage() {
         }
 
         try {
-            if (!catalogs.tipoSolicitudBajaId) {
-                alert('Error: No se encontró el tipo de solicitud "Baja" en el sistema.')
+            let bajaId = catalogs.tipoSolicitudBajaId
+
+            // Fallback: Fetch if missing (flexibly)
+            if (!bajaId) {
+                const { data } = await supabase.from('cat_tipos_solicitud')
+                    .select('id_tipo_solicitud')
+                    .or('tipo_solicitud.ilike.%baja%')
+                    .limit(1)
+                if (data?.[0]) bajaId = data[0].id_tipo_solicitud
+            }
+
+            if (!bajaId) {
+                alert('Error: No se encontró el tipo de solicitud de "Baja" en la base de datos. Por favor, asegúrese de que el catálogo de tipos de solicitud incluya "Baja de Personal".')
                 return
             }
 
             // Create Termination Request (Solicitud)
             const { error } = await supabase.from('solicitudes').insert({
-                id_tipo_solicitud: catalogs.tipoSolicitudBajaId,
+                id_tipo_solicitud: bajaId,
                 id_empleado_objetivo: id,
                 estatus: 'Pendiente', // or 'Enviada'
                 folio: `BAJA-${Date.now()}`, // Simple folio generation
