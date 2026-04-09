@@ -106,26 +106,39 @@ BEGIN
             FOREIGN KEY (id_empleado) REFERENCES empleados(id_empleado) ON DELETE CASCADE;
     END IF;
 
-    -- Limpiar duplicados en catálogos antes de agregar UNIQUE
+    -- Catálogos: Limpiar duplicados y asegurar UNIQUE
     IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='cat_tipos_solicitud') THEN
-        DELETE FROM cat_tipos_solicitud a
-            USING cat_tipos_solicitud b
-            WHERE a.ctid > b.ctid
-            AND a.tipo_solicitud = b.tipo_solicitud;
-
+        DELETE FROM cat_tipos_solicitud a USING cat_tipos_solicitud b WHERE a.ctid > b.ctid AND a.tipo_solicitud = b.tipo_solicitud;
         IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'cat_tipos_solicitud_tipo_solicitud_key') THEN
             ALTER TABLE cat_tipos_solicitud ADD CONSTRAINT cat_tipos_solicitud_tipo_solicitud_key UNIQUE (tipo_solicitud);
         END IF;
     END IF;
 
     IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='cat_tipos_incidencia') THEN
-        DELETE FROM cat_tipos_incidencia a
-            USING cat_tipos_incidencia b
-            WHERE a.ctid > b.ctid
-            AND a.tipo_incidencia = b.tipo_incidencia;
-
+        DELETE FROM cat_tipos_incidencia a USING cat_tipos_incidencia b WHERE a.ctid > b.ctid AND a.tipo_incidencia = b.tipo_incidencia;
         IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'cat_tipos_incidencia_tipo_incidencia_key') THEN
             ALTER TABLE cat_tipos_incidencia ADD CONSTRAINT cat_tipos_incidencia_tipo_incidencia_key UNIQUE (tipo_incidencia);
+        END IF;
+    END IF;
+
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='cat_tipos_rol') THEN
+        DELETE FROM cat_tipos_rol a USING cat_tipos_rol b WHERE a.id_tipo_rol > b.id_tipo_rol AND a.tipo_rol = b.tipo_rol;
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'cat_tipos_rol_tipo_rol_key') THEN
+            ALTER TABLE cat_tipos_rol ADD CONSTRAINT cat_tipos_rol_tipo_rol_key UNIQUE (tipo_rol);
+        END IF;
+    END IF;
+
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='cat_causas_baja') THEN
+        DELETE FROM cat_causas_baja a USING cat_causas_baja b WHERE a.id_causa_baja > b.id_causa_baja AND a.causa = b.causa;
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'cat_causas_baja_causa_key') THEN
+            ALTER TABLE cat_causas_baja ADD CONSTRAINT cat_causas_baja_causa_key UNIQUE (causa);
+        END IF;
+    END IF;
+
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='cat_periodos_vacacionales') THEN
+        DELETE FROM cat_periodos_vacacionales a USING cat_periodos_vacacionales b WHERE a.id_periodo > b.id_periodo AND a.periodo = b.periodo;
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'cat_periodos_vacacionales_periodo_key') THEN
+            ALTER TABLE cat_periodos_vacacionales ADD CONSTRAINT cat_periodos_vacacionales_periodo_key UNIQUE (periodo);
         END IF;
     END IF;
 
