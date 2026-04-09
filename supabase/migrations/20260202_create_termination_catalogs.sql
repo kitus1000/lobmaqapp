@@ -1,3 +1,12 @@
+-- =========================================================================
+-- PASO 12-A DE 13 — CATÁLOGOS DE CAUSAS DE BAJA (General + IMSS)
+-- Nombre: 20260202_create_termination_catalogs.sql
+-- Descripción: Crea cat_causas_baja y cat_causas_baja_imss.
+--              Agrega columnas id_causa_baja e id_causa_imss a la tabla bajas.
+--              Requerido por el módulo de Empleados (proceso de baja).
+--              Requiere: PASO 1 ejecutado primero.
+-- =========================================================================
+
 -- Create catalog for standardized termination causes (internal/general logic)
 CREATE TABLE IF NOT EXISTS cat_causas_baja (
     id_causa_baja UUID PRIMARY KEY DEFAULT gen_random_uuid(),

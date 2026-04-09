@@ -1,3 +1,11 @@
+-- =========================================================================
+-- PASO 12-B DE 13 — TABLA DE PLANTILLAS DE DOCUMENTOS (Base)
+-- Nombre: 20260202_create_templates.sql
+-- Descripción: Crea la tabla document_templates con su RLS.
+--              Base del módulo de Documentos.
+--              Requiere: PASO 1 ejecutado primero.
+-- =========================================================================
+
 -- Create table for document templates
 create table if not exists document_templates (
   id uuid default gen_random_uuid() primary key,

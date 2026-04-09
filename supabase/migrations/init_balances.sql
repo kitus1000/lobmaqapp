@@ -1,3 +1,12 @@
+-- =========================================================================
+-- PASO 12-G DE 13 — FUNCIÓN Y TRIGGER: INICIALIZAR SALDOS DE VACACIONES
+-- Nombre: init_balances.sql
+-- Descripción: Crea la función initialize_vacation_balance() y el trigger
+--              trg_init_balance que se dispara al dar de alta un empleado.
+--              También inicializa saldos para empleados ya existentes.
+--              Calcula días según Ley Federal del Trabajo (LFT 2023).
+--              Requiere: PASO 1 ejecutado primero.
+-- =========================================================================
 
 -- 1. Create a function to auto-initialize balances for an employee
 -- This function will calculate tenure and insert a row into vacaciones_saldos

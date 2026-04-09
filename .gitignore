@@ -34,7 +34,9 @@ yarn-error.log*
 .env*
 
 # vercel
-.vercel
+
+# local project data
+/proyecto empresas/
 
 # typescript
 *.tsbuildinfo
