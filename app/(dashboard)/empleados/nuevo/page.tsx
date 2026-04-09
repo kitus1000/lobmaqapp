@@ -56,7 +56,9 @@ export default function NuevoEmpleadoPage() {
         clabe: '',
         id_turno: '',
         id_tipo_rol: '',
-        salario_diario: ''
+        salario_diario: '',
+        hijos_numero: '0',
+        tipo_residencia: 'Local'
     })
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -77,13 +79,15 @@ export default function NuevoEmpleadoPage() {
                     apellido_paterno: formData.apellido_paterno,
                     apellido_materno: formData.apellido_materno,
                     sexo: formData.sexo,
-                    fecha_nacimiento: formData.fecha_nacimiento,
+                    fecha_nacimiento: formData.fecha_nacimiento || null,
                     curp: formData.curp,
                     rfc: formData.rfc,
                     nss: formData.nss,
                     telefono: formData.telefono,
                     correo_electronico: formData.correo_electronico,
                     estado_civil: formData.estado_civil,
+                    hijos_numero: parseInt(formData.hijos_numero) || 0,
+                    tipo_residencia: formData.tipo_residencia,
                     id_turno: tipoAsignacion === 'horario' ? (formData.id_turno || null) : null
                 }])
                 .select()
@@ -279,6 +283,19 @@ export default function NuevoEmpleadoPage() {
                                 <option value="Divorciado">Divorciado/a</option>
                                 <option value="Viudo">Viudo/a</option>
                                 <option value="Union Libre">Unión Libre</option>
+                            </select>
+                        </div>
+ 
+                        <div>
+                            <label className="block text-sm font-medium text-zinc-700">No. Hijos</label>
+                            <input type="number" name="hijos_numero" value={formData.hijos_numero} onChange={handleChange} className="mt-1 block w-full rounded-md border-zinc-300 shadow-sm focus:border-amber-500 focus:ring-amber-500 sm:text-sm border p-2 text-zinc-900" />
+                        </div>
+ 
+                        <div>
+                            <label className="block text-sm font-medium text-zinc-700">Tipo de Residencia</label>
+                            <select name="tipo_residencia" value={formData.tipo_residencia} onChange={handleChange} className="mt-1 block w-full rounded-md border-zinc-300 shadow-sm focus:border-amber-500 focus:ring-amber-500 sm:text-sm border p-2 text-zinc-900">
+                                <option value="Local">Local</option>
+                                <option value="Foráneo">Foráneo</option>
                             </select>
                         </div>
 

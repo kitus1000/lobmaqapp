@@ -55,26 +55,37 @@ export default function EmpleadoDetallePage() {
     }, [id])
 
     async function checkPermissions() {
-        const { data: { user } } = await supabase.auth.getUser()
-        if (user) {
-            const { data: profile } = await supabase
-                .from('perfiles')
-                .select('rol, cat_departamentos(departamento)')
-                .eq('id', user.id)
-                .maybeSingle()
+        try {
+            const { data: { user } } = await supabase.auth.getUser()
+            if (user) {
+                const { data: profile } = await supabase
+                    .from('perfiles')
+                    .select('rol, cat_departamentos(departamento)')
+                    .eq('id', user.id)
+                    .maybeSingle()
 
-            if (profile) {
-                const isAdmin = profile.rol === 'Administrativo' || profile.rol === 'Administrador'
-                // @ts-ignore
-                const deptName = profile.cat_departamentos?.departamento || (Array.isArray(profile.cat_departamentos) ? profile.cat_departamentos[0]?.departamento : '')
-                const isHR = profile.rol === 'Jefe' && deptName === 'Recursos Humanos'
+                if (profile) {
+                    const role = profile.rol || ''
+                    const isAdmin = role === 'Administrativo' || role === 'Administrador' || role === 'Admin'
 
-                // Allow supervisors to manage their own dept incidences if requested, or just keep Admin/HR
-                setCanManage(isAdmin || isHR || profile.rol === 'Supervisor' || profile.rol === 'Coordinador')
-            } else {
-                // Failsafe in case of 0 rows from perfiles:
-                setCanManage(true)
+                    const deptAny = profile.cat_departamentos as any
+                    const deptName = (deptAny?.departamento || (Array.isArray(deptAny) ? deptAny[0]?.departamento : '') || '').toLowerCase()
+
+                    const isHR = (role === 'Jefe' && (
+                        deptName.includes('recursos') ||
+                        deptName.includes('humanos') ||
+                        deptName === 'rh'
+                    )) || role.toLowerCase().includes('recursos humanos')
+
+                    setCanManage(isAdmin || isHR || role === 'Supervisor' || role === 'Coordinador')
+                } else {
+                    // Failsafe if no profile exists
+                    setCanManage(true)
+                }
             }
+        } catch (e) {
+            console.error('Error checking permissions:', e)
+            setCanManage(false)
         }
     }
 
@@ -82,7 +93,7 @@ export default function EmpleadoDetallePage() {
         const { data: causasBaja } = await supabase.from('cat_causas_baja').select('*').eq('activo', true)
         const { data: causasImss } = await supabase.from('cat_causas_baja_imss').select('*').eq('activo', true)
         const { data: tipoBaja } = await supabase.from('cat_tipos_solicitud').select('id_tipo_solicitud').eq('tipo_solicitud', 'Baja de Personal').single()
-        const { data: tipoReingreso } = await supabase.from('cat_tipos_solicitud').select('id_tipo_solicitud').eq('tipo_solicitud', 'Reingreso').single()
+        const { data: tipoReingreso } = await supabase.from('cat_tipos_solicitud').select('id_tipo_solicitud').eq('tipo_solicitud', 'Reingreso de Personal').single()
 
         setCatalogs({
             causasBaja: causasBaja || [],
@@ -102,74 +113,100 @@ export default function EmpleadoDetallePage() {
 
     async function fetchEmpleado() {
         if (!id) return
+        setLoading(true)
 
-        const { data, error } = await supabase
-            .from('empleados')
-            .select(`
-            *,
-            empleado_domicilio(*),
-            empleado_ingreso(*),
-            empleado_banco(*),
-            empleado_salarios(*)
-        `)
-            .eq('id_empleado', id)
-            .single()
+        try {
+            const { data, error } = await supabase
+                .from('empleados')
+                .select(`
+                *,
+                empleado_domicilio(*),
+                empleado_ingreso(*),
+                empleado_banco(*),
+                empleado_salarios(*)
+            `)
+                .eq('id_empleado', id)
+                .single()
 
-        // Fetch rol activo
-        const { data: rolesData } = await supabase
-            .from('empleado_roles')
-            .select('id_empleado_rol, id_tipo_rol, fecha_inicio, cat_tipos_rol(tipo_rol, dias_trabajo, dias_descanso)')
-            .eq('id_empleado', id)
-            .order('fecha_inicio', { ascending: false })
-            .limit(1)
-        const rolRec = rolesData?.[0] || null
-        setRolActivo(rolRec)
-        if (rolRec) {
-            setRolForm({ id_tipo_rol: rolRec.id_tipo_rol, fecha_inicio: rolRec.fecha_inicio })
-            setTipoAsignacion('rol')
-        } else {
-            setTipoAsignacion('horario')
+            if (error) throw error
+
+            if (data) {
+                processEmpleadoData(data)
+            }
+        } catch (error: any) {
+            console.error('Error fetching full employee profile:', error)
+            // Fallback: Fetch basic data if join fails
+            const { data: basicData, error: basicError } = await supabase
+                .from('empleados')
+                .select('*')
+                .eq('id_empleado', id)
+                .single()
+
+            if (!basicError && basicData) {
+                processEmpleadoData(basicData)
+            }
+        } finally {
+            // Fetch also roles separately to avoid join complexity
+            const { data: rolesData } = await supabase
+                .from('empleado_roles')
+                .select('id_empleado_rol, id_tipo_rol, fecha_inicio, cat_tipos_rol(tipo_rol, dias_trabajo, dias_descanso)')
+                .eq('id_empleado', id)
+                .order('fecha_inicio', { ascending: false })
+                .limit(1)
+
+            const rolRec = rolesData?.[0] || null
+            setRolActivo(rolRec)
+            if (rolRec) {
+                setRolForm({ id_tipo_rol: rolRec.id_tipo_rol, fecha_inicio: rolRec.fecha_inicio })
+                setTipoAsignacion('rol')
+            } else {
+                setTipoAsignacion('horario')
+            }
+
+            setLoading(false)
         }
+    }
 
-        if (!error && data) {
-            setEmpleado(data)
+    function processEmpleadoData(data: any) {
+        setEmpleado(data)
 
-            // Normalize as objects
-            const domicilio = Array.isArray(data.empleado_domicilio) ? data.empleado_domicilio[0] : data.empleado_domicilio
-            const ingreso = Array.isArray(data.empleado_ingreso) ? data.empleado_ingreso[0] : data.empleado_ingreso
-            const banco = Array.isArray(data.empleado_banco) ? data.empleado_banco[0] : data.empleado_banco
+        // Normalize as objects
+        const domicilio = Array.isArray(data.empleado_domicilio) ? data.empleado_domicilio[0] : data.empleado_domicilio
+        const ingreso = Array.isArray(data.empleado_ingreso) ? data.empleado_ingreso[0] : data.empleado_ingreso
+        const banco = Array.isArray(data.empleado_banco) ? data.empleado_banco[0] : data.empleado_banco
 
-            // Salarios
-            const salarios = (data.empleado_salarios || []).sort((a: any, b: any) =>
-                new Date(b.fecha_inicio_vigencia).getTime() - new Date(a.fecha_inicio_vigencia).getTime()
-            )
-            const latestSalario = salarios[0]
+        // Salarios
+        const salarios = (data.empleado_salarios || []).sort((a: any, b: any) =>
+            new Date(b.fecha_inicio_vigencia).getTime() - new Date(a.fecha_inicio_vigencia).getTime()
+        )
+        const latestSalario = salarios[0]
 
-            // Flatten data for edit form
-            setEditForm({
-                ...data,
-                // Domicilio
-                id_turno: data.id_turno || '',
-                calle: domicilio?.calle || '',
-                numero_exterior: domicilio?.numero_exterior || '',
-                colonia: domicilio?.colonia || '',
-                codigo_postal: domicilio?.codigo_postal || '',
-                ciudad: domicilio?.ciudad || '',
-                municipio: domicilio?.municipio || '',
-                estado: domicilio?.estado || '',
-                // Ingreso
-                fecha_ingreso: ingreso?.fecha_ingreso || '',
-                // Banco
-                banco: banco?.banco || '',
-                numero_cuenta: banco?.numero_cuenta || '',
-                clabe: banco?.clabe || '',
-                // Salario
-                salario_diario: latestSalario?.salario_diario || '',
-                id_empleado_salario: latestSalario?.id_empleado_salario || null,
-                salario_original: latestSalario?.salario_diario || ''
-            })
-        }
-        setLoading(false)
+        // Flatten data for edit form
+        setEditForm({
+            ...data,
+            // Domicilio
+            id_turno: data.id_turno || '',
+            calle: domicilio?.calle || '',
+            numero_exterior: domicilio?.numero_exterior || '',
+            colonia: domicilio?.colonia || '',
+            codigo_postal: domicilio?.codigo_postal || '',
+            ciudad: domicilio?.ciudad || '',
+            municipio: domicilio?.municipio || '',
+            estado: domicilio?.estado || '',
+            // Ingreso
+            fecha_ingreso: ingreso?.fecha_ingreso || '',
+            // Banco
+            banco: banco?.banco || '',
+            numero_cuenta: banco?.numero_cuenta || '',
+            clabe: banco?.clabe || '',
+            // Salario
+            salario_diario: latestSalario?.salario_diario || '',
+            id_empleado_salario: latestSalario?.id_empleado_salario || null,
+            salario_original: latestSalario?.salario_diario || '',
+            // Additional Fields
+            hijos_numero: data.hijos_numero || 0,
+            tipo_residencia: data.tipo_residencia || 'Local'
+        })
     }
 
     async function handleRehire() {
@@ -260,11 +297,13 @@ export default function EmpleadoDetallePage() {
                     telefono: editForm.telefono,
                     correo_electronico: editForm.correo_electronico,
                     sexo: editForm.sexo,
-                    fecha_nacimiento: editForm.fecha_nacimiento,
+                    fecha_nacimiento: editForm.fecha_nacimiento || null,
                     estado_civil: editForm.estado_civil,
                     rfc: editForm.rfc,
                     curp: editForm.curp,
                     nss: editForm.nss,
+                    hijos_numero: parseInt(editForm.hijos_numero) || 0,
+                    tipo_residencia: editForm.tipo_residencia,
                     id_turno: tipoAsignacion === 'horario' ? (editForm.id_turno || null) : null
                 })
                 .eq('id_empleado', id)
@@ -491,6 +530,14 @@ export default function EmpleadoDetallePage() {
                                     <dt className="text-xs font-medium text-zinc-500">Estado Civil</dt>
                                     <dd className="text-sm font-medium text-zinc-900">{empleado.estado_civil || '-'}</dd>
                                 </div>
+                                <div className="col-span-1">
+                                    <dt className="text-xs font-medium text-zinc-500">No. Hijos</dt>
+                                    <dd className="text-sm font-medium text-zinc-900">{empleado.hijos_numero ?? 0}</dd>
+                                </div>
+                                <div className="col-span-1">
+                                    <dt className="text-xs font-medium text-zinc-500">Residencia</dt>
+                                    <dd className="text-sm font-medium text-zinc-900">{empleado.tipo_residencia || 'Local'}</dd>
+                                </div>
                                 <div className="col-span-2">
                                     <dt className="text-xs font-medium text-zinc-500">Correo Electrónico</dt>
                                     <dd className="text-sm font-medium text-zinc-900">{empleado.correo_electronico || '-'}</dd>
@@ -670,6 +717,17 @@ export default function EmpleadoDetallePage() {
                                                 <option value="Divorciado">Divorciado/a</option>
                                                 <option value="Viudo">Viudo/a</option>
                                                 <option value="Union Libre">Unión Libre</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-medium text-zinc-500 mb-1">No. Hijos</label>
+                                            <input type="number" className="w-full text-sm border-zinc-300 rounded-md text-black bg-white" value={editForm.hijos_numero} onChange={e => setEditForm({ ...editForm, hijos_numero: e.target.value })} />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-medium text-zinc-500 mb-1">Tipo de Residencia</label>
+                                            <select className="w-full text-sm border-zinc-300 rounded-md text-black bg-white" value={editForm.tipo_residencia} onChange={e => setEditForm({ ...editForm, tipo_residencia: e.target.value })}>
+                                                <option value="Local">Local</option>
+                                                <option value="Foráneo">Foráneo</option>
                                             </select>
                                         </div>
                                         <div className="col-span-2 border-t pt-4 mt-2">
