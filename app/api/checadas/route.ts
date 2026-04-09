@@ -54,7 +54,12 @@ export async function POST(request: Request) {
             .maybeSingle()
 
         if (empError || !emp) {
-            return NextResponse.json({ ok: false, error_code: 'ID_INVALIDO', mensaje: 'No se encontró al empleado.' }, { status: 400, headers: corsHeaders })
+            console.error('Error buscando empleado 20500:', empError)
+            return NextResponse.json({ 
+                ok: false, 
+                error_code: 'ID_INVALIDO', 
+                mensaje: `No se encontró al empleado. ${empError ? 'Error real: ' + empError.message : 'El número no existe en la tabla.'}` 
+            }, { status: 400, headers: corsHeaders })
         }
         if (emp.estado_empleado !== 'Activo') {
             return NextResponse.json({ ok: false, error_code: 'EMPLEADO_BAJA', mensaje: 'El empleado no está activo.' }, { status: 400, headers: corsHeaders })
