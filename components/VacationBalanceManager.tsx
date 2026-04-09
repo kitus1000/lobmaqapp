@@ -76,56 +76,51 @@ export function VacationBalanceManager({ idEmpleado, fechaIngreso, isReadOnly = 
 
     async function initializePeriod(balance: any) {
         if (balance.hasRecord) return
-
-        // 1. First, check if the period already exists in cat_periodos_vacacionales
-        let { data: periodData, error: fetchError } = await supabase
-            .from('cat_periodos_vacacionales')
-            .select('id_periodo')
-            .eq('periodo', balance.periodo)
-            .maybeSingle()
-
-        if (fetchError) {
-            alert('Error al buscar periodo: ' + fetchError.message)
-            return
-        }
-
-        // 2. If it doesn't exist, create it
-        if (!periodData) {
-            const startYear = parseInt(balance.periodo.split(' - ')[0])
-            const { data: newPeriod, error: createError } = await supabase
+        setLoading(true)
+        
+        try {
+            // Since the database now has triggers, we just need to wait a moment 
+            // and refresh if the record is missing. Or we can manually trigger the proc via RPC if desired.
+            // For now, we'll keep a manual "Force Sync" logic but make it calls a specific endpoint or just insert.
+            
+            // 1. First, check if the period already exists in cat_periodos_vacacionales
+            let { data: periodData } = await supabase
                 .from('cat_periodos_vacacionales')
-                .insert([{
-                    periodo: balance.periodo,
-                    fecha_inicio: `${startYear}-01-01`,
-                    fecha_fin: `${startYear + 1}-12-31`
-                }])
-                .select()
-                .single()
+                .select('id_periodo')
+                .eq('periodo', balance.periodo)
+                .maybeSingle()
 
-            if (createError || !newPeriod) {
-                alert('Error al crear periodo: ' + (createError?.message || 'No se pudo crear el periodo'))
-                return
+            // 2. If it doesn't exist, create it
+            if (!periodData) {
+                const startYear = parseInt(balance.periodo.split(' - ')[0])
+                const { data: newPeriod, error: createError } = await supabase
+                    .from('cat_periodos_vacacionales')
+                    .insert([{
+                        periodo: balance.periodo,
+                        fecha_inicio: `${startYear}-01-01`,
+                        fecha_fin: `${startYear + 1}-12-31`
+                    }])
+                    .select()
+                    .single()
+
+                if (createError) throw createError
+                periodData = newPeriod
             }
-            periodData = newPeriod
-        }
 
-        if (!periodData) {
-            alert('Error crítico: No se pudo obtener el ID del periodo.')
-            return
-        }
+            // 3. Create the balance record in vacaciones_saldos
+            const { error: insertError } = await supabase.from('vacaciones_saldos').insert([{
+                id_empleado: idEmpleado,
+                id_periodo: periodData.id_periodo,
+                dias_asignados: balance.dias_asignados,
+                dias_tomados: 0
+            }])
 
-        // 3. Create the balance record in vacaciones_saldos
-        const { error: insertError } = await supabase.from('vacaciones_saldos').insert([{
-            id_empleado: idEmpleado,
-            id_periodo: periodData.id_periodo,
-            dias_asignados: balance.dias_asignados,
-            dias_tomados: 0
-        }])
-
-        if (!insertError) {
+            if (insertError) throw insertError
             fetchBalances()
-        } else {
-            alert('Error al guardar saldo: ' + insertError.message)
+        } catch (e: any) {
+            alert('Error al sincronizar: ' + e.message)
+        } finally {
+            setLoading(false)
         }
     }
 
