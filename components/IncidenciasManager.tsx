@@ -24,17 +24,32 @@ export function IncidenciasManager({ idEmpleado, isReadOnly = false }: { idEmple
     }, [])
 
     async function fetchIncidents() {
-        const { data } = await supabase
-            .from('empleado_incidencias')
-            .select(`
-                *,
-                cat_tipos_incidencia(tipo_incidencia)
-            `)
-            .eq('id_empleado', idEmpleado)
-            .order('fecha_inicio', { ascending: false })
+        setLoading(true)
+        try {
+            const { data, error } = await supabase
+                .from('empleado_incidencias')
+                .select(`
+                    *,
+                    cat_tipos_incidencia(tipo_incidencia)
+                `)
+                .eq('id_empleado', idEmpleado)
+                .order('fecha_inicio', { ascending: false })
 
-        setIncidents(data || [])
-        setLoading(false)
+            if (error) throw error
+            setIncidents(data || [])
+        } catch (error) {
+            console.error("Error fetching incidences with join:", error)
+            // Fallback: Simple query without join
+            const { data: fallbackData } = await supabase
+                .from('empleado_incidencias')
+                .select('*')
+                .eq('id_empleado', idEmpleado)
+                .order('fecha_inicio', { ascending: false })
+            
+            setIncidents(fallbackData || [])
+        } finally {
+            setLoading(false)
+        }
     }
 
     async function fetchTipos() {
@@ -66,7 +81,8 @@ export function IncidenciasManager({ idEmpleado, isReadOnly = false }: { idEmple
             // Reset form (keep date)
             setFormData({ ...formData, comentarios: '', id_tipo_incidencia: '', dias: 1 })
         } catch (e: any) {
-            alert(e.message)
+            console.error("Error saving incidence:", e)
+            alert('Error al guardar incidencia: ' + (e.message || 'Error desconocido del servidor'))
         }
     }
 
