@@ -231,7 +231,8 @@ export default function EmpleadoDetallePage() {
             salario_original: latestSalario?.salario_diario || '',
             // Additional Fields
             hijos_numero: data.hijos_numero || 0,
-            tipo_residencia: data.tipo_residencia || 'Local'
+            tipo_residencia: data.tipo_residencia || 'Local',
+            paga_horas_extra: data.paga_horas_extra ?? true
         })
     }
 
@@ -346,6 +347,7 @@ export default function EmpleadoDetallePage() {
                     nss: editForm.nss,
                     hijos_numero: parseInt(editForm.hijos_numero) || 0,
                     tipo_residencia: editForm.tipo_residencia,
+                    paga_horas_extra: editForm.paga_horas_extra,
                     id_turno: tipoAsignacion === 'horario' ? (editForm.id_turno || null) : null
                 })
                 .eq('id_empleado', id)
@@ -684,6 +686,12 @@ export default function EmpleadoDetallePage() {
                                         {ingreso?.fecha_ingreso || 'No registrada'}
                                     </dd>
                                 </div>
+                                <div>
+                                    <dt className="text-xs font-medium text-zinc-500">Pago de Horas Extra</dt>
+                                    <dd className={`text-sm font-bold ${empleado.paga_horas_extra !== false ? 'text-green-600' : 'text-amber-600'}`}>
+                                        {empleado.paga_horas_extra !== false ? 'Habilitado' : 'Deshabilitado'}
+                                    </dd>
+                                </div>
                             </dl>
                         </div>
                     </div>
@@ -872,6 +880,18 @@ export default function EmpleadoDetallePage() {
                                                     </span>
                                                 )}
                                             </p>
+                                        </div>
+                                        <div className="col-span-2">
+                                            <label className="block text-xs font-bold text-zinc-700 mb-2 mt-4 flex items-center gap-2 cursor-pointer">
+                                                <input 
+                                                    type="checkbox" 
+                                                    checked={editForm.paga_horas_extra} 
+                                                    onChange={e => setEditForm({ ...editForm, paga_horas_extra: e.target.checked })}
+                                                    className="w-4 h-4 text-indigo-600 border-zinc-300 rounded focus:ring-indigo-500" 
+                                                />
+                                                Pagar Horas Extra a este colaborador
+                                            </label>
+                                            <p className="text-[10px] text-zinc-500 ml-6 italic">Si se desactiva, el reporte de pre-nómina ignorará los excedentes para este empleado aunque existan checadas.</p>
                                         </div>
                                     </div>
                                 )}

@@ -207,6 +207,9 @@ BEGIN
         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='empleados' AND column_name='id_turno') THEN
             ALTER TABLE empleados ADD COLUMN id_turno UUID REFERENCES turnos(id) ON DELETE SET NULL;
         END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='empleados' AND column_name='paga_horas_extra') THEN
+            ALTER TABLE empleados ADD COLUMN paga_horas_extra BOOLEAN DEFAULT TRUE;
+        END IF;
         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='empleados' AND column_name='fecha_actualizacion') THEN
             ALTER TABLE empleados ADD COLUMN fecha_actualizacion TIMESTAMPTZ DEFAULT now();
         END IF;

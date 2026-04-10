@@ -258,6 +258,7 @@ export default function PrenominaPage() {
     const [search, setSearch] = useState('')
     const [selectedEmployee, setSelectedEmployee] = useState<any | null>(null)
     const [descansosGlobales, setDescansosGlobales] = useState<string[]>([])
+    const [calculateOvertime, setCalculateOvertime] = useState(true)
 
     useEffect(() => { fetchMetadata() }, [])
 
@@ -279,7 +280,7 @@ export default function PrenominaPage() {
         try {
             const { data: empsRaw, error: empsErr } = await supabase
                 .from('empleados')
-                .select('id_empleado, numero_empleado, nombre, apellido_paterno, apellido_materno, id_turno')
+                .select('id_empleado, numero_empleado, nombre, apellido_paterno, apellido_materno, id_turno, paga_horas_extra')
                 .eq('estado_empleado', 'Activo')
                 .order('apellido_paterno')
 
@@ -465,9 +466,10 @@ export default function PrenominaPage() {
                 // Cálculo de Pago por Festivos (Triple = Día normal + 200% adicional)
                 const pagoFestivo = diasFestivosTrabajados * (sdValue * 2)
 
-                // Cálculo de Horas Extra (Dobles y Triples)
-                const pagoExtraDobles = horasExtraDobles * (sdValue / 8 * 2)
-                const pagoExtraTriples = horasExtraTriples * (sdValue / 8 * 3)
+                // Cálculo de Horas Extra (Dobles y Triples) condicionadas
+                const shouldPayHE = calculateOvertime && emp.paga_horas_extra !== false
+                const pagoExtraDobles = shouldPayHE ? horasExtraDobles * (sdValue / 8 * 2) : 0
+                const pagoExtraTriples = shouldPayHE ? horasExtraTriples * (sdValue / 8 * 3) : 0
 
                 const totalPercepciones = (diasPagados * sdValue) + pDominical + pVacacionalProporcional + pVacacionalAnual + pagoFestivo + pagoExtraDobles + pagoExtraTriples
 
@@ -676,6 +678,18 @@ export default function PrenominaPage() {
                         <div className="flex flex-col px-1">
                             <label className="text-[9px] font-black text-zinc-400 uppercase tracking-tighter">Periodo Fin</label>
                             <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="bg-transparent border-none p-0 focus:ring-0 text-sm font-bold text-zinc-800" />
+                        </div>
+                        <div className="flex items-center gap-2 bg-indigo-50/50 p-2 px-3 rounded-xl border border-indigo-100">
+                            <input 
+                                type="checkbox" 
+                                id="overtime-toggle"
+                                checked={calculateOvertime}
+                                onChange={(e) => setCalculateOvertime(e.target.checked)}
+                                className="w-4 h-4 text-indigo-900 border-zinc-300 rounded focus:ring-indigo-500"
+                            />
+                            <label htmlFor="overtime-toggle" className="text-xs font-black text-indigo-900 uppercase cursor-pointer select-none">
+                                Calcular Horas Extra
+                            </label>
                         </div>
                     </div>
                     <button onClick={generateReport} disabled={loading} className="bg-indigo-900 text-white px-8 py-4 rounded-2xl font-black hover:bg-black transition-all flex items-center justify-center disabled:opacity-50 text-sm shadow-lg shadow-indigo-100">
