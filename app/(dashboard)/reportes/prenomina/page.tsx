@@ -115,7 +115,8 @@ function calcAttendance(
 
             if (ent) {
                 const turnoId = ent.id_turno || activeRole.cat_tipos_rol?.id_tipo_rol || activeRole.id_turno
-                const turno = turnosDic[turnoId]
+                // Fallback para buscar turno por ID o por Nombre si el ID no coincide
+                const turno = turnosDic[turnoId] || Object.values(turnosDic).find(t => t.nombre === turnoId || t.id === turnoId)
 
                 if (turno && turno.hora_fin) {
                     const [hNom, mNom] = turno.hora_fin.split(':').map(Number)
@@ -418,27 +419,30 @@ export default function PrenominaPage() {
                 // Prima Dominical Calculation
                 const pDominical = payPrimaDominical ? (asistenciasDomingo * 0.25 * sdValue) : 0
 
-                // Prima Vacacional Calculation (LFT 2023 "Vacaciones Dignas")
-                const pVacacionalProporcional = diasVacaciones * 0.25 * sdValue
+                // --- LÓGICA DE PRIMAS (LFT 25%) ---
+                // Prima Proporcional (Días gozados * 0.25 * SD)
+                const pVacacionalProporcional = 0 // Desactivamos la proporcional por ahora a favor de la de ley anual
+
                 let pVacacionalAnual = 0
-                let vDays = 0
+                let vDaysCount = 0
                 if (fechaIngreso) {
                     const years = yearsOfService
-                    if (years === 1) vDays = 12
-                    else if (years === 2) vDays = 14
-                    else if (years === 3) vDays = 16
-                    else if (years === 4) vDays = 18
-                    else if (years === 5) vDays = 20
-                    else if (years >= 6 && years <= 10) vDays = 22
-                    else if (years >= 11 && years <= 15) vDays = 24
-                    else if (years >= 16 && years <= 20) vDays = 26
-                    else if (years >= 21 && years <= 25) vDays = 28
-                    else if (years >= 26 && years <= 30) vDays = 30
-                    else if (years >= 31) vDays = 32
+                    if (years === 1) vDaysCount = 12
+                    else if (years === 2) vDaysCount = 14
+                    else if (years === 3) vDaysCount = 16
+                    else if (years === 4) vDaysCount = 18
+                    else if (years === 5) vDaysCount = 20
+                    else if (years >= 6 && years <= 10) vDaysCount = 22
+                    else if (years >= 11 && years <= 15) vDaysCount = 24
+                    else if (years >= 16 && years <= 20) vDaysCount = 26
+                    else if (years >= 21 && years <= 25) vDaysCount = 28
+                    else if (years >= 26 && years <= 30) vDaysCount = 30
+                    else if (years >= 31) vDaysCount = 32
 
+                    // Se paga sobre la totalidad de los días de ley en el aniversario o si está marcado
                     if (payPrimaVacacional) {
-                        pVacacionalAnual = vDays * 0.25 * sdValue
-                        alerts.push(`🎉 Aniversario detectado (${years} años - ${vDays} días)`)
+                        pVacacionalAnual = vDaysCount * 0.25 * sdValue
+                        if (esAniversario) alerts.push(`🎉 Aniversario detectado (${years} años - ${vDaysCount} días)`)
                     }
                 }
 
@@ -481,8 +485,8 @@ export default function PrenominaPage() {
                     incapacidadesDetalle: incapacidadesList.join(', '),
                     // Primas logic
                     payPrimaDominical, payPrimaVacacional,
-                    asistenciasDomingo, vDays,
-                    primaDominical: pDominical, primaVacacional: pVacacionalProporcional + pVacacionalAnual,
+                    asistenciasDomingo, vDays: vDaysCount,
+                    primaDominical: pDominical, primaVacacional: pVacacionalAnual,
                     pagoFestivo, pagoExtraDobles, pagoExtraTriples,
                     horasExtraDobles, horasExtraTriples, diasFestivosTrabajados,
                     totalPercepciones, totalDeducciones, neto,
@@ -511,7 +515,7 @@ export default function PrenominaPage() {
             const pVacProp = (newRow.diasVacaciones || 0) * 0.25 * newRow.sd
 
             newRow.primaDominical = pDom
-            newRow.primaVacacional = pVacAnual + pVacProp
+            newRow.primaVacacional = pVacAnual
 
             // --- LÓGICA DE PAGO (CORREGIDA) ---
             const diasPagados = newRow.asistencias + newRow.descansos + newRow.diasVacaciones + newRow.permisosGoce

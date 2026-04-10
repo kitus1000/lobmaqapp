@@ -137,6 +137,7 @@ export default function PrenominaEmployeeModal({ isOpen, onClose, employeeData, 
                                     <tr>
                                         <th className="px-4 py-3 text-left text-[11px] font-bold text-zinc-500 uppercase w-32">Fecha</th>
                                         <th className="px-4 py-3 text-left text-[11px] font-bold text-zinc-500 uppercase">Estatus</th>
+                                        <th className="px-4 py-3 text-center text-[11px] font-bold text-zinc-500 uppercase">Turno</th>
                                         <th className="px-4 py-3 text-center text-[11px] font-bold text-zinc-500 uppercase">Entrada</th>
                                         <th className="px-4 py-3 text-center text-[11px] font-bold text-zinc-500 uppercase">Salida</th>
                                         <th className="px-4 py-3 text-center text-[11px] font-bold text-zinc-500 uppercase whitespace-nowrap">H. Extra</th>
@@ -157,16 +158,26 @@ export default function PrenominaEmployeeModal({ isOpen, onClose, employeeData, 
                                                          {details ? (details.split(' (')[0]) : status}
                                                      </span>
                                                  </td>
-                                                <td className="px-4 py-3 text-center">
-                                                    {checadaIn && checadaIn.timestamp_checada ? (
-                                                        <span className="font-mono text-xs font-bold text-zinc-700 bg-zinc-100 px-1.5 py-0.5 rounded">
-                                                            {(() => {
-                                                                const d = new Date(checadaIn.timestamp_checada)
-                                                                return isNaN(d.getTime()) ? 'Error Hora' : d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })
-                                                            })()}
-                                                        </span>
-                                                    ) : <span className="text-zinc-300">-</span>}
-                                                </td>
+                                                 <td className="px-4 py-3 text-center">
+                                                     <div className="flex flex-col">
+                                                         <span className="text-[10px] font-bold text-zinc-500 uppercase leading-none">
+                                                             {employeeData.rawTurno?.hora_inicio?.substring(0, 5) || '--:--'}
+                                                         </span>
+                                                         <span className="text-[10px] font-bold text-zinc-400 uppercase leading-none mt-1">
+                                                             {employeeData.rawTurno?.hora_fin?.substring(0, 5) || '--:--'}
+                                                         </span>
+                                                     </div>
+                                                 </td>
+                                                 <td className="px-4 py-3 text-center">
+                                                     {checadaIn && checadaIn.timestamp_checada ? (
+                                                         <span className="font-mono text-xs font-bold text-zinc-700 bg-zinc-100 px-1.5 py-0.5 rounded">
+                                                             {(() => {
+                                                                 const d = new Date(checadaIn.timestamp_checada)
+                                                                 return isNaN(d.getTime()) ? 'Error Hora' : d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })
+                                                             })()}
+                                                         </span>
+                                                     ) : <span className="text-zinc-300">-</span>}
+                                                 </td>
                                                 <td className="px-4 py-3 text-center">
                                                     {checadaOut && checadaOut.timestamp_checada ? (
                                                         <span className="font-mono text-xs font-bold text-zinc-700 bg-zinc-100 px-1.5 py-0.5 rounded">

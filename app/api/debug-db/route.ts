@@ -17,22 +17,19 @@ export async function GET() {
             .select('id_empleado, nombre, numero_empleado, id_turno')
             .limit(10)
 
-        // 2. Verificar tablas de checador
+        // 2. Verificar tablas de checador y ver Turnos completos
         const { count: checadasCount } = await supabase.from('checadas').select('*', { count: 'exact', head: true })
-        const { data: turnos } = await supabase.from('turnos').select('id, nombre').limit(5)
+        const { data: turnosFull } = await supabase.from('turnos').select('*')
 
         return NextResponse.json({
             ok: true,
             diagnostico: {
-                conexion: !!sample || !!sampleError,
-                empleados_visto: !!sample,
-                error_empleados: sampleError || null,
-                columnas_posibles: sample ? Object.keys(sample[0] || {}) : [],
-                lista_empleados: sample || [], // Se agregan los datos reales
-                resumen_tablas: {
-                    checadas: checadasCount,
-                    turnos_ejemplo: turnos
-                }
+                conexion: true,
+                total_encontrado: sample?.length || 0,
+                checadas_totales: checadasCount || 0,
+                turnos: turnosFull || [],
+                empleados: sample || [],
+                url_base: process.env.NEXT_PUBLIC_SUPABASE_URL
             }
         })
     } catch (e: any) {
