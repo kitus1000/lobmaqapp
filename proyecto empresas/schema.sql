@@ -99,6 +99,8 @@ BEGIN
         END IF;
     END IF;
 
+
+
     -- Reparar relación de empleado_salarios (Basado en el error reportado)
     IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='empleado_salarios') THEN
         ALTER TABLE empleado_salarios DROP CONSTRAINT IF EXISTS empleado_salarios_id_empleado_fkey;
@@ -380,3 +382,13 @@ DROP TRIGGER IF EXISTS tr_generar_vacaciones_empleado ON empleados;
 CREATE TRIGGER tr_generar_vacaciones_empleado
 AFTER INSERT ON empleados
 FOR EACH ROW EXECUTE PROCEDURE public.fn_generar_saldos_vacaciones();
+-- 11. HELPERS DE CÁLCULO LEGAL (LFT)
+CREATE OR REPLACE FUNCTION public.fn_get_overtime_lft(p_weekly_total NUMERIC)
+RETURNS TABLE (dobles NUMERIC, triples NUMERIC) AS $$
+BEGIN
+    RETURN QUERY 
+    SELECT 
+        LEAST(9, p_weekly_total) as dobles,
+        GREATEST(0, p_weekly_total - 9) as triples;
+END;
+$$ LANGUAGE plpgsql IMMUTABLE;

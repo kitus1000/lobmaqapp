@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '@/utils/supabase/client'
 import { FileDown, Search, Building, Calendar, CheckCircle, AlertTriangle, XCircle, Clock, Sparkles, X } from 'lucide-react'
 import * as XLSX from 'xlsx'
-import { eachDayOfInterval, format, parseISO, differenceInCalendarDays, differenceInYears, isBefore, startOfDay } from 'date-fns'
+import { eachDayOfInterval, format, parseISO, differenceInCalendarDays, differenceInYears, isBefore, startOfDay, startOfWeek } from 'date-fns'
 import PrenominaEmployeeModal from '@/components/PrenominaEmployeeModal'
 import { calculateSDI } from '@/utils/sdiLogic'
 import { calculateDailyStatus } from '@/utils/rosterLogic'
@@ -201,12 +201,25 @@ function calcAttendance(
         alerts.push("Sin Rol / Turno asignado")
     }
 
-    // Regla 9 dobles, resto triples (Semanal o por periodo)
-    // Para simplificar en este MVP, calculamos sobre el total del periodo reportado
-    if (horasExtraTotales > 0) {
-        horasExtraDobles = Math.min(9, horasExtraTotales)
-        horasExtraTriples = Math.max(0, horasExtraTotales - 9)
-    }
+    // --- LÓGICA LFT: 9 HORAS DOBLES POR SEMANA ---
+    const extraHoursByWeek: Record<string, number> = {}
+
+    dailyBreakdown.forEach(day => {
+        if (day.extraHrs > 0) {
+            // Agrupamos por el inicio de la semana (Lunes)
+            const weekKey = format(startOfWeek(parseISO(day.fecha), { weekStartsOn: 1 }), 'yyyy-MM-dd')
+            extraHoursByWeek[weekKey] = (extraHoursByWeek[weekKey] || 0) + day.extraHrs
+        }
+    })
+
+    horasExtraDobles = 0
+    horasExtraTriples = 0
+    Object.values(extraHoursByWeek).forEach(weeklyTotal => {
+        const dobles = Math.min(9, weeklyTotal)
+        const triples = Math.max(0, weeklyTotal - 9)
+        horasExtraDobles += dobles
+        horasExtraTriples += triples
+    })
 
     return {
         asistencias, retardos, faltas, diasTrabajoProgramados, descansos,
