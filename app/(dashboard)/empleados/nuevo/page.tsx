@@ -58,7 +58,8 @@ export default function NuevoEmpleadoPage() {
         id_tipo_rol: '',
         salario_diario: '',
         hijos_numero: '0',
-        tipo_residencia: 'Local'
+        tipo_residencia: 'Local',
+        paga_horas_extra: true
     })
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -88,6 +89,7 @@ export default function NuevoEmpleadoPage() {
                     estado_civil: formData.estado_civil,
                     hijos_numero: parseInt(formData.hijos_numero) || 0,
                     tipo_residencia: formData.tipo_residencia,
+                    paga_horas_extra: formData.paga_horas_extra,
                     id_turno: tipoAsignacion === 'horario' ? (formData.id_turno || null) : null
                 }])
                 .select()
@@ -457,10 +459,23 @@ export default function NuevoEmpleadoPage() {
                                 )}
                             </p>
                         </div>
-                        <div className="col-span-2 p-4 bg-amber-50 border border-amber-200 rounded-md">
-                            <p className="text-sm text-amber-800">
                                 <strong>Nota:</strong> La asignación de Puesto, Departamento y Unidad se debe realizar desde la sección "Historial - Adscripciones" una vez creado el empleado para mantener la integridad histórica.
                             </p>
+                        </div>
+                        <div className="col-span-2 pt-4">
+                            <label className="flex items-center space-x-3 cursor-pointer bg-zinc-50 p-4 rounded-lg border border-zinc-200">
+                                <input
+                                    type="checkbox"
+                                    name="paga_horas_extra"
+                                    checked={formData.paga_horas_extra}
+                                    onChange={(e) => setFormData({ ...formData, paga_horas_extra: e.target.checked })}
+                                    className="h-5 w-5 text-amber-500 border-zinc-300 rounded focus:ring-amber-500"
+                                />
+                                <div>
+                                    <span className="block text-sm font-bold text-zinc-900">Activar Pago de Horas Extra</span>
+                                    <span className="block text-xs text-zinc-500">Si se activa, el sistema calculará excedentes de tiempo laborado según la LFT.</span>
+                                </div>
+                            </label>
                         </div>
                     </div>
                 )
