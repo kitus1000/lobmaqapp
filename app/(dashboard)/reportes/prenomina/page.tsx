@@ -125,7 +125,8 @@ function calcAttendance(
 
                 // Buscar la PRIMERA salida que ocurra DESPUÉS de esta entrada
                 const entTimeNum = entReal.getTime()
-                let sal = empChecadas.find(c => 
+                // Buscar la ÚLTIMA salida del día para el cálculo de horas extra
+                let sal = [...empChecadas].reverse().find(c => 
                     salTypes.includes(c.tipo_checada) && 
                     new Date(c.timestamp_checada).getTime() > entTimeNum
                 )

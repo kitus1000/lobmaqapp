@@ -70,6 +70,113 @@ CREATE TABLE IF NOT EXISTS bajas (
     PRIMARY KEY (id_empleado, fecha_baja)
 );
 
+CREATE TABLE IF NOT EXISTS turnos (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    nombre          TEXT NOT NULL,
+    hora_inicio     TIME NOT NULL,
+    hora_fin        TIME,
+    tolerancia_min  INT DEFAULT 10,
+    limite_falta_min INT NOT NULL DEFAULT 60,
+    ventana_desde   TIME,
+    ventana_hasta   TIME,
+    bloquear_fuera_ventana BOOLEAN DEFAULT FALSE,
+    aplica_dias     TEXT[] DEFAULT '{"Lunes","Martes","Miércoles","Jueves","Viernes"}',
+    activo          BOOLEAN DEFAULT TRUE,
+    company_id      UUID,
+    creado_el       TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS cat_tipos_checada (
+    id                    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tipo                  TEXT NOT NULL UNIQUE,
+    label                 TEXT NOT NULL,
+    requiere_codigo       BOOLEAN DEFAULT FALSE,
+    ICONO                 TEXT,
+    ORDINAL               INT DEFAULT 0,
+    TOLERANCIA_RETORNO_MIN INT DEFAULT 5,
+    ACTIVO                BOOLEAN DEFAULT TRUE
+);
+
+CREATE TABLE IF NOT EXISTS dispositivos_checadores (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    nombre          TEXT NOT NULL,
+    device_key      TEXT UNIQUE NOT NULL,
+    tipo            TEXT DEFAULT 'tablet',
+    ubicacion       TEXT,
+    activo          BOOLEAN DEFAULT TRUE,
+    company_id      UUID,
+    ultimo_ping     TIMESTAMPTZ,
+    creado_el       TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS checadas (
+    id                    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id_empleado           UUID NOT NULL REFERENCES empleados(id_empleado) ON DELETE CASCADE,
+    tipo_checada          TEXT NOT NULL,
+    timestamp_checada     TIMESTAMPTZ NOT NULL DEFAULT now(),
+    fecha_local           DATE NOT NULL,
+    estatus_puntualidad   TEXT,
+    retardo_minutos       INT DEFAULT 0,
+    id_permiso            UUID,
+    id_dispositivo        UUID REFERENCES dispositivos_checadores(id),
+    id_turno              UUID REFERENCES turnos(id),
+    metodo_identificacion TEXT DEFAULT 'QR',
+    company_id            UUID,
+    sincronizado          BOOLEAN DEFAULT TRUE,
+    origen                TEXT DEFAULT 'web',
+    notas                 TEXT,
+    creado_el             TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS permisos_autorizados (
+    id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    codigo            TEXT NOT NULL UNIQUE,
+    id_empleado       UUID NOT NULL REFERENCES empleados(id_empleado) ON DELETE CASCADE,
+    tipo_checada      TEXT NOT NULL,
+    vigencia_desde    TIMESTAMPTZ NOT NULL,
+    vigencia_hasta    TIMESTAMPTZ NOT NULL,
+    usos_maximos      INT DEFAULT 1,
+    usos_realizados   INT DEFAULT 0,
+    estatus           TEXT DEFAULT 'Activo',
+    motivo            TEXT,
+    company_id        UUID,
+    creado_por        UUID,
+    usado_en          TIMESTAMPTZ,
+    usado_en_device   UUID REFERENCES dispositivos_checadores(id),
+    cancelado_por     UUID,
+    cancelado_el      TIMESTAMPTZ,
+    creado_el         TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS auditoria_logs (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    usuario_id      UUID,
+    accion          TEXT NOT NULL,
+    entidad         TEXT NOT NULL,
+    entidad_id      TEXT,
+    datos_antes     JSONB,
+    datos_despues   JSONB,
+    company_id      UUID,
+    ip_address      TEXT,
+    creado_el       TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS cat_festivos (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    nombre TEXT NOT NULL,
+    descripcion TEXT,
+    fecha DATE NOT NULL,
+    activo BOOLEAN DEFAULT TRUE,
+    creado_el TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS config_descansos_globales (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    fecha DATE NOT NULL UNIQUE,
+    motivo TEXT,
+    creado_el TIMESTAMPTZ DEFAULT now()
+);
+
 -- 2. ASEGURAR NUEVAS COLUMNAS Y REPARAR RELACIONES
 DO $$ 
 BEGIN
@@ -94,8 +201,21 @@ BEGIN
         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='empleados' AND column_name='hijos_numero') THEN
             ALTER TABLE empleados ADD COLUMN hijos_numero INT DEFAULT 0;
         END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='empleados' AND column_name='qr_token') THEN
+            ALTER TABLE empleados ADD COLUMN qr_token TEXT UNIQUE DEFAULT gen_random_uuid()::TEXT;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='empleados' AND column_name='id_turno') THEN
+            ALTER TABLE empleados ADD COLUMN id_turno UUID REFERENCES turnos(id) ON DELETE SET NULL;
+        END IF;
         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='empleados' AND column_name='fecha_actualizacion') THEN
             ALTER TABLE empleados ADD COLUMN fecha_actualizacion TIMESTAMPTZ DEFAULT now();
+        END IF;
+    END IF;
+
+    -- empleado_adscripciones
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='empleado_adscripciones') THEN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='empleado_adscripciones' AND column_name='es_jefe') THEN
+            ALTER TABLE empleado_adscripciones ADD COLUMN es_jefe BOOLEAN DEFAULT FALSE;
         END IF;
     END IF;
 
@@ -240,6 +360,21 @@ BEGIN
         END IF;
     END IF;
 
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='permisos_autorizados') THEN
+        IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'permisos_autorizados' AND policyname = 'Permitir select permisos') THEN
+            CREATE POLICY "Permitir select permisos" ON permisos_autorizados FOR SELECT USING (true);
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'permisos_autorizados' AND policyname = 'Permitir update permisos') THEN
+            CREATE POLICY "Permitir update permisos" ON permisos_autorizados FOR UPDATE USING (true);
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'permisos_autorizados' AND policyname = 'Permitir insert permisos') THEN
+            CREATE POLICY "Permitir insert permisos" ON permisos_autorizados FOR INSERT WITH CHECK (true);
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'permisos_autorizados' AND policyname = 'Permitir delete permisos') THEN
+            CREATE POLICY "Permitir delete permisos" ON permisos_autorizados FOR DELETE USING (true);
+        END IF;
+    END IF;
+
     IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='cat_tipos_incidencia') THEN
         IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'cat_tipos_incidencia' AND policyname = 'Public Read') THEN
             CREATE POLICY "Public Read" ON cat_tipos_incidencia FOR SELECT USING (true);
@@ -256,6 +391,15 @@ BEGIN
         IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'turnos' AND policyname = 'Public Read') THEN
             CREATE POLICY "Public Read" ON turnos FOR SELECT USING (true);
         END IF;
+        IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'turnos' AND policyname = 'Permitir insert turnos') THEN
+            CREATE POLICY "Permitir insert turnos" ON turnos FOR INSERT WITH CHECK (true);
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'turnos' AND policyname = 'Permitir update turnos') THEN
+            CREATE POLICY "Permitir update turnos" ON turnos FOR UPDATE USING (true);
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'turnos' AND policyname = 'Permitir delete turnos') THEN
+            CREATE POLICY "Permitir delete turnos" ON turnos FOR DELETE USING (true);
+        END IF;
     END IF;
 
     IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='cat_tipos_checada') THEN
@@ -271,11 +415,25 @@ BEGIN
         IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'checadas' AND policyname = 'Authenticated Select') THEN
             CREATE POLICY "Authenticated Select" ON checadas FOR SELECT USING (true);
         END IF;
+        IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'checadas' AND policyname = 'Permitir update a todos checadas') THEN
+            CREATE POLICY "Permitir update a todos checadas" ON checadas FOR UPDATE USING (true);
+        END IF;
     END IF;
 
     IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='empleados') THEN
         IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'empleados' AND policyname = 'Authenticated All') THEN
             CREATE POLICY "Authenticated All" ON empleados FOR ALL USING (true);
+        END IF;
+    END IF;
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='cat_festivos') THEN
+        IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'cat_festivos' AND policyname = 'Authenticated All festivos') THEN
+            CREATE POLICY "Authenticated All festivos" ON cat_festivos FOR ALL USING (true);
+        END IF;
+    END IF;
+
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='config_descansos_globales') THEN
+        IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'config_descansos_globales' AND policyname = 'Authenticated All descansos') THEN
+            CREATE POLICY "Authenticated All descansos" ON config_descansos_globales FOR ALL USING (true);
         END IF;
     END IF;
 END $$;
@@ -309,6 +467,20 @@ INSERT INTO cat_tipos_incidencia (tipo_incidencia, bloquea_asistencia, cuenta_co
 ('Permiso con Goce', TRUE, FALSE),
 ('Retardo', FALSE, FALSE)
 ON CONFLICT (tipo_incidencia) DO NOTHING;
+
+-- TIPOS DE CHECADA
+INSERT INTO cat_tipos_checada (tipo, label, requiere_codigo, color, ordinal, tolerancia_retorno_min) 
+VALUES
+  ('ENTRADA', 'ENTRADA', false, 'bg-green-600', 1, 0),
+  ('SALIDA', 'SALIDA', false, 'bg-red-600', 2, 0),
+  ('COMIDA_SALIDA', 'COMIDA – SALIDA', false, 'bg-amber-500', 3, 0),
+  ('COMIDA_REGRESO', 'COMIDA – REGRESO', false, 'bg-amber-600', 4, 0),
+  ('PERMISO_PERSONAL', 'PERMISO PERSONAL', true, 'bg-blue-600', 5, 5),
+  ('SALIDA_OPERACIONES', 'SALIDA OPERACIONES', true, 'bg-indigo-600', 6, 5),
+  ('REGRESO_PERMISO_PERSONAL', 'PERMISO REGRESO', false, 'bg-blue-500', 7, 0),
+  ('REGRESO_OPERACIONES', 'OP. REGRESO', false, 'bg-indigo-500', 8, 0)
+ON CONFLICT (tipo) DO UPDATE 
+SET requiere_codigo = EXCLUDED.requiere_codigo, label = EXCLUDED.label, tolerancia_retorno_min = EXCLUDED.tolerancia_retorno_min;
 
 -- 5. LÓGICA DE AUTOMATIZACIÓN DE VACACIONES
 CREATE OR REPLACE FUNCTION public.fn_get_dias_vacaciones_lft(anios int)
