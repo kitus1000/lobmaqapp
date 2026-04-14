@@ -459,6 +459,8 @@ export default function NuevoEmpleadoPage() {
                                 )}
                             </p>
                         </div>
+                        <div className="col-span-2 pt-2">
+                             <p className="text-xs text-zinc-500 italic bg-zinc-50 p-4 rounded-lg border border-dashed border-zinc-200">
                                 <strong>Nota:</strong> La asignación de Puesto, Departamento y Unidad se debe realizar desde la sección "Historial - Adscripciones" una vez creado el empleado para mantener la integridad histórica.
                             </p>
                         </div>

@@ -123,18 +123,14 @@ function calcAttendance(
                     String(t.nombre).toLowerCase() === String(turnoId).toLowerCase()
                 )
 
-                // Buscar la PRIMERA salida que ocurra DESPUÉS de esta entrada
+                // Buscar la salida que corresponda a este turno (dentro de una ventana de 18 horas)
                 const entTimeNum = entReal.getTime()
-                // Buscar la ÚLTIMA salida del día para el cálculo de horas extra
-                let sal = [...empChecadas].reverse().find(c => 
+                const possibleExits = empChecadas.filter(c => 
                     salTypes.includes(c.tipo_checada) && 
-                    new Date(c.timestamp_checada).getTime() > entTimeNum
+                    new Date(c.timestamp_checada).getTime() > entTimeNum &&
+                    (new Date(c.timestamp_checada).getTime() - entTimeNum) < 18 * 60 * 60 * 1000
                 )
-
-                // Umbral: Si la salida es más de 18 horas después, probablemente no es de este turno
-                if (sal && (new Date(sal.timestamp_checada).getTime() - entTimeNum) > 18 * 60 * 60 * 1000) {
-                    sal = null
-                }
+                let sal = possibleExits.length > 0 ? possibleExits[possibleExits.length - 1] : null
 
                 if (turno && turno.hora_fin) {
                     const [hNom, mNom] = turno.hora_fin.split(':').map(Number)
