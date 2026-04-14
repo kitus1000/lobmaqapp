@@ -314,21 +314,21 @@ export default function EmpleadosPage() {
                     <h1 className="text-2xl font-bold text-zinc-900">Directorio de Empleados</h1>
                     <p className="text-sm text-zinc-500">Gestione la información de todo el personal</p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center flex-wrap gap-2">
                     <button
                         onClick={() => downloadTemplate('empleados')}
-                        className="inline-flex items-center px-3 py-2 border border-zinc-200 rounded-md shadow-sm text-xs font-bold text-zinc-700 bg-white hover:bg-zinc-50 tracking-tighter uppercase"
+                        className="inline-flex items-center px-3 py-2 border border-zinc-200 rounded-md shadow-sm text-xs font-bold text-zinc-700 bg-white hover:bg-zinc-50 tracking-tighter uppercase whitespace-nowrap"
                     >
-                        <FileSpreadsheet className="-ml-1 mr-2 h-4 w-4 text-emerald-600" />
+                        <FileSpreadsheet className="-ml-1 mr-1 h-4 w-4 text-emerald-600" />
                         Plantilla
                     </button>
                     <button
                         onClick={() => fileInputRef.current?.click()}
                         disabled={importing}
-                        className="inline-flex items-center px-3 py-2 border border-zinc-200 rounded-md shadow-sm text-xs font-bold text-zinc-700 bg-white hover:bg-zinc-50 tracking-tighter uppercase"
+                        className="inline-flex items-center px-3 py-2 border border-zinc-200 rounded-md shadow-sm text-xs font-bold text-zinc-700 bg-white hover:bg-zinc-50 tracking-tighter uppercase whitespace-nowrap"
                     >
-                        <Upload className="-ml-1 mr-2 h-4 w-4 text-blue-600" />
-                        {importing ? 'Cargando...' : 'Importar'}
+                        <Upload className="-ml-1 mr-1 h-4 w-4 text-blue-600" />
+                        {importing ? '...' : 'Importar'}
                     </button>
                     <input
                         type="file"
@@ -339,17 +339,17 @@ export default function EmpleadosPage() {
                     />
                     <button
                         onClick={handleExport}
-                        className="inline-flex items-center px-3 py-2 border border-zinc-200 rounded-md shadow-sm text-xs font-bold text-zinc-700 bg-white hover:bg-zinc-50 tracking-tighter uppercase"
+                        className="inline-flex items-center px-3 py-2 border border-zinc-200 rounded-md shadow-sm text-xs font-bold text-zinc-700 bg-white hover:bg-zinc-50 tracking-tighter uppercase whitespace-nowrap"
                     >
-                        <Download className="-ml-1 mr-2 h-4 w-4 text-amber-600" />
+                        <Download className="-ml-1 mr-1 h-4 w-4 text-amber-600" />
                         Exportar
                     </button>
                     <Link
                         href="/empleados/nuevo"
-                        className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-black hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black ml-2"
+                        className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-black hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black ml-0 sm:ml-2 whitespace-nowrap"
                     >
                         <Plus className="-ml-1 mr-2 h-5 w-5" aria-hidden="true" />
-                        Nuevo Empleado
+                        Nuevo
                     </Link>
                 </div>
             </div>

@@ -231,6 +231,22 @@ BEGIN
             FOREIGN KEY (id_empleado) REFERENCES empleados(id_empleado) ON DELETE CASCADE;
     END IF;
 
+    -- document_templates
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='document_templates') THEN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='document_templates' AND column_name='body_html') THEN
+            ALTER TABLE document_templates ADD COLUMN body_html TEXT;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='document_templates' AND column_name='header_html') THEN
+            ALTER TABLE document_templates ADD COLUMN header_html TEXT;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='document_templates' AND column_name='footer_html') THEN
+            ALTER TABLE document_templates ADD COLUMN footer_html TEXT;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='document_templates' AND column_name='blocks') THEN
+            ALTER TABLE document_templates ADD COLUMN blocks JSONB;
+        END IF;
+    END IF;
+
     -- Catálogos: Limpiar duplicados y asegurar UNIQUE
     IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name='cat_tipos_solicitud') THEN
         DELETE FROM cat_tipos_solicitud a USING cat_tipos_solicitud b WHERE a.ctid > b.ctid AND a.tipo_solicitud = b.tipo_solicitud;

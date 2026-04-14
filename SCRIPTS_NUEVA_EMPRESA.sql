@@ -143,8 +143,27 @@ CREATE TABLE IF NOT EXISTS document_templates (
     blocks JSONB,
     header_content JSONB,
     footer_content JSONB,
+    body_html TEXT,
+    header_html TEXT,
+    footer_html TEXT,
     margins JSONB DEFAULT '{"top": 2.5, "right": 2.5, "bottom": 2.5, "left": 2.5}'::JSONB,
     created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS cat_festivos (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    nombre TEXT NOT NULL,
+    descripcion TEXT,
+    fecha DATE NOT NULL,
+    activo BOOLEAN DEFAULT TRUE,
+    creado_el TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS config_descansos_globales (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    fecha DATE NOT NULL UNIQUE,
+    motivo TEXT,
+    creado_el TIMESTAMPTZ DEFAULT now()
 );
 
 CREATE TABLE IF NOT EXISTS perfiles (
@@ -171,6 +190,15 @@ CREATE POLICY "Users can view their own profile" ON perfiles FOR SELECT USING (a
 CREATE POLICY "Admins can all" ON perfiles FOR ALL USING (
     EXISTS (SELECT 1 FROM perfiles WHERE id = auth.uid() AND rol = 'Administrativo')
 );
+
+ALTER TABLE document_templates ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Authenticated All" ON document_templates FOR ALL USING (true);
+
+ALTER TABLE cat_festivos ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Authenticated All" ON cat_festivos FOR ALL USING (true);
+
+ALTER TABLE config_descansos_globales ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Authenticated All" ON config_descansos_globales FOR ALL USING (true);
 
 -- Trigger to create profile on signup
 CREATE OR REPLACE FUNCTION public.handle_new_user()

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from '@/utils/supabase/client'
-import { Plus, Trash2, Tag, FileType, Clock, Edit, X, Briefcase, Building2, Truck, ArrowDownLeft, TimerOff, ChevronRight, Check, AlertCircle, Loader2, Download, Upload } from 'lucide-react'
+import { Plus, Trash2, Tag, FileType, Clock, Edit, X, Briefcase, Building2, Truck, ArrowDownLeft, TimerOff, ChevronRight, ChevronLeft, Check, AlertCircle, Loader2, Download, Upload } from 'lucide-react'
 import Link from 'next/link'
 import { downloadTemplate, parseExcelFile, exportToExcel } from '@/utils/excelUtils'
 import { useRef } from 'react'
@@ -50,48 +50,76 @@ export default function CatalogosPage() {
                 </div>
             </div>
 
-            {/* Tabs Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-2">
-                {tabs.map(tab => {
-                    const isActive = activeTab === tab.id
-                    const c = colorMap[tab.color]
-                    const Icon = tab.icon
+            {/* Tabs List with Scroll Buttons */}
+            <div className="relative group">
+                <div 
+                    id="tabs-container"
+                    className="flex overflow-x-auto scrollbar-hide gap-3 pb-2 scroll-smooth no-scrollbar"
+                >
+                    {tabs.map(tab => {
+                        const isActive = activeTab === tab.id
+                        const c = colorMap[tab.color]
+                        const Icon = tab.icon
 
-                    if (tab.href) {
-                        return (
-                            <Link
-                                key={tab.id}
-                                href={tab.href}
-                                className={`group flex flex-col items-center gap-1.5 p-3 rounded-xl border text-center transition-all duration-200 bg-white border-zinc-200 text-zinc-500 hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-700`}
-                            >
-                                <div className={`p-2 rounded-lg transition-all duration-200 bg-zinc-100 group-hover:bg-zinc-200`}>
+                        const content = (
+                            <>
+                                <div className={`p-2 rounded-lg transition-all duration-200 ${isActive ? `${c.bg} text-white shadow-sm` : 'bg-zinc-100 group-hover:bg-zinc-200'}`}>
                                     <Icon className="w-4 h-4" />
                                 </div>
-                                <span className="text-xs font-semibold leading-tight">{tab.label}</span>
-                            </Link>
+                                <span className="text-xs font-semibold leading-tight whitespace-nowrap">{tab.label}</span>
+                                {isActive && <div className={`w-5 h-0.5 rounded-full ${c.bg}`} />}
+                            </>
                         )
-                    }
 
-                    return (
-                        <button
-                            key={tab.id}
-                            onClick={() => {
-                                setActiveTab(tab.id)
-                                setSelectedDeptForPuestos(null)
-                            }}
-                            className={`group flex flex-col items-center gap-1.5 p-3 rounded-xl border text-center transition-all duration-200 ${isActive
-                                ? `${c.light} ${c.border} ${c.text} shadow-sm`
-                                : 'bg-white border-zinc-200 text-zinc-500 hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-700'
-                                }`}
-                        >
-                            <div className={`p-2 rounded-lg transition-all duration-200 ${isActive ? `${c.bg} text-white shadow-sm` : 'bg-zinc-100 group-hover:bg-zinc-200'}`}>
-                                <Icon className="w-4 h-4" />
-                            </div>
-                            <span className="text-xs font-semibold leading-tight">{tab.label}</span>
-                            {isActive && <div className={`w-5 h-0.5 rounded-full ${c.bg}`} />}
-                        </button>
-                    )
-                })}
+                        if (tab.href) {
+                            return (
+                                <Link
+                                    key={tab.id}
+                                    href={tab.href}
+                                    className="flex flex-col items-center gap-1.5 p-3 min-w-[100px] rounded-xl border text-center transition-all duration-200 bg-white border-zinc-200 text-zinc-500 hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-700"
+                                >
+                                    {content}
+                                </Link>
+                            )
+                        }
+
+                        return (
+                            <button
+                                key={tab.id}
+                                onClick={() => {
+                                    setActiveTab(tab.id)
+                                    setSelectedDeptForPuestos(null)
+                                }}
+                                className={`flex flex-col items-center gap-1.5 p-3 min-w-[100px] rounded-xl border text-center transition-all duration-200 ${isActive
+                                    ? `${c.light} ${c.border} ${c.text} shadow-sm`
+                                    : 'bg-white border-zinc-200 text-zinc-500 hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-700'
+                                    }`}
+                            >
+                                {content}
+                            </button>
+                        )
+                    })}
+                </div>
+                
+                {/* Scroll Buttons */}
+                <button 
+                    onClick={() => {
+                        const container = document.getElementById('tabs-container');
+                        if (container) container.scrollBy({ left: -200, behavior: 'smooth' });
+                    }}
+                    className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-2 bg-white rounded-full p-1 shadow-md border border-zinc-200 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                >
+                    <ChevronLeft className="w-4 h-4" />
+                </button>
+                <button 
+                    onClick={() => {
+                        const container = document.getElementById('tabs-container');
+                        if (container) container.scrollBy({ left: 200, behavior: 'smooth' });
+                    }}
+                    className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-2 bg-white rounded-full p-1 shadow-md border border-zinc-200 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                >
+                    <ChevronRight className="w-4 h-4" />
+                </button>
             </div>
 
             {/* Content */}

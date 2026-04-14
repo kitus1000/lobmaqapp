@@ -1,28 +1,37 @@
-# Guía de Instalación para Nuevo Proyecto Empresa
+# Guía de Archivos SQL — Sistema de RH
 
-En esta carpeta se han recopilado **todos** los archivos SQL de tu proyecto actual, tanto los que estaban en la carpeta principal como en la carpeta `supabase/`. 
+Este documento explica la organización de los archivos SQL para el despliegue del sistema en nuevas empresas.
 
-Si quieres crear un nuevo cliente o empresa y quieres tener exactamente la misma estructura y funcionalidades (con el checador, permisos, roles, etc.), te recomiendo seguir este orden al copiar y pegar el código en el SQL Editor de tu nuevo proyecto de Supabase:
+## 🚀 Archivos Principales (Usar para nuevas instalaciones)
 
-### 1. Base Principal
-Copia y pega todo el contenido de este archivo primero. Contiene las tablas de empleados, vacaciones, empresas y los catálogos base.
-- `SCRIPTS_NUEVA_EMPRESA.sql`
+1.  **[schema.sql](file:///c:/Users/Kitus100/Desktop/Lobmaq/rh-system/proyecto%20empresas/schema.sql)**: 
+    *   **EL SCRIPT MAESTRO**. Contiene la estructura completa, lógica de vacaciones, horas extra, catálogos iniciales y políticas de seguridad (RLS). 
+    *   **Instrucción**: Ejecutar este archivo es suficiente para tener el sistema funcionando al 100%.
 
-### 2. Módulo de Checador y Turnos (Fase 2)
-Este archivo agrega toda la funcionalidad avanzada del checador de fase 2.
-- `SQL_CHECADOR_FASE_2.sql`
+2.  **[SCRIPTS_NUEVA_EMPRESA.sql](file:///c:/Users/Kitus100/Desktop/Lobmaq/rh-system/proyecto%20empresas/SCRIPTS_NUEVA_EMPRESA.sql)**: 
+    *   Guía rápida de referencia que apunta al uso de `schema.sql`.
 
-### 3. Parches y Correcciones Posteriores
-Después de ejecutar el checador, asegúrate de correr estos parches en cualquier orden, ya que son ajustes específicos de permisos y lógica que hicimos después:
-- `SQL_FIX_PERMISOS.sql` (Muy importante para que las políticas RLS funcionen en el checador).
-- `SQL_FIX_RETORNOS.sql` (Corrige la lógica de retornos de funciones RPC).
-- `SQL_ADD_LIMITE_FALTA.sql` (Agrega el tiempo límite a los turnos).
-- `SQL_FIX_TOLERANCIA_PERMISOS.sql` (Aplica tolerancias).
-- `UPDATE_SCHEMA_ES_JEFE.sql` (Actualiza funciones del dashboard).
-- `CREATE_TABLE_PERFILES.sql` (Solo si no venía ya en el script principal).
+---
 
-### 4. Semillas Extras
-Si te hace falta información de roles que no venía por defecto:
-- `seeds.sql` o `seeds_roles.sql`
+## 📂 Archivos Históricos (Guardados por seguridad)
 
-> **Nota:** Puedes ignorar los archivos que dicen `schema_dump.sql`, `schema.sql` o `schema_current.sql`, ya que regularmente son copias de seguridad de la estructura y correrlos de golpe puede dar error por objetos duplicados. Lo mejor es seguir el orden detallado aquí arriba.
+Estos archivos ya están integrados en el `schema.sql` maestro. Se conservan en la carpeta `historico_sql/` solo para referencia o auditoría:
+
+| Archivo | Propósito Original |
+| :--- | :--- |
+| `CREATE_TABLE_PERFILES.sql` | Estructura base de perfiles de usuario. |
+| `SQL_ADD_LIMITE_FALTA.sql` | Configuración de tolerancia para faltas. |
+| `SQL_CHECADOR_FASE_2.sql` | Módulo avanzado del checador (Turnos, Salidas). |
+| `SQL_FESTIVOS.sql` | Tabla y catálogo de días festivos. |
+| `SQL_FIX_PERMISOS.sql` | Correcciones en políticas de acceso (RLS). |
+| `SQL_FIX_RETORNOS.sql` | Ajuste en lógica de retorno de checadas. |
+| `SQL_FIX_TOLERANCIA_PERMISOS.sql` | Ajustes finos en tiempos de tolerancia. |
+| `UPDATE_SCHEMA_ES_JEFE.sql` | Campo para identificar roles de jefatura. |
+| `lft_helpers.sql` | Funciones de apoyo para la Ley Federal del Trabajo. |
+| `seeds.sql` | Datos iniciales generales. |
+| `seeds_roles.sql` | Catálogo de roles del sistema. |
+
+---
+
+> [!IMPORTANT]
+> **Para cualquier empresa nueva, solo copia y pega el contenido de `schema.sql` en el SQL Editor de Supabase.**

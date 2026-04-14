@@ -19,7 +19,9 @@ import {
     Info,
     Library,
     Clock,
-    KeyRound
+    KeyRound,
+    ChevronLeft,
+    ChevronRight
 } from 'lucide-react'
 import { cn } from '@/utils/cn'
 
@@ -109,23 +111,41 @@ export function Sidebar() {
         return ['Acerca de'].includes(item.name)
     })
 
+    const [isCollapsed, setIsCollapsed] = useState(false)
+
     return (
-        <div className="flex h-screen w-64 flex-col bg-black text-zinc-300 border-r border-zinc-800">
+        <div className={cn(
+            "flex h-screen flex-col bg-black text-zinc-300 border-r border-zinc-800 transition-all duration-300 relative",
+            isCollapsed ? "w-20" : "w-64"
+        )}>
+            {/* Toggle Button */}
+            <button
+                onClick={() => setIsCollapsed(!isCollapsed)}
+                className="absolute -right-3 top-10 z-50 flex h-6 w-6 items-center justify-center rounded-full bg-amber-500 text-black shadow-lg hover:bg-amber-400 transition-colors"
+            >
+                {isCollapsed ? (
+                    <ChevronRight className="h-4 w-4" />
+                ) : (
+                    <ChevronLeft className="h-4 w-4" />
+                )}
+            </button>
             <div className="flex h-20 items-center justify-center border-b border-zinc-800 bg-zinc-950">
                 <div className="flex items-center space-x-2">
                     <div className="h-10 w-10 rounded-lg bg-amber-500 flex items-center justify-center text-black shadow-lg shadow-amber-500/20">
                         <FolderLock className="w-6 h-6" />
                     </div>
-                    <div className="flex flex-col">
-                        <h1 className="text-sm font-black tracking-tighter text-white uppercase italic leading-tight">El</h1>
-                        <h1 className="text-lg font-black tracking-widest text-amber-500 uppercase leading-none -mt-1">Expediente</h1>
-                    </div>
+                    {!isCollapsed && (
+                        <div className="flex flex-col animate-in fade-in duration-500">
+                            <h1 className="text-sm font-black tracking-tighter text-white uppercase italic leading-tight">El</h1>
+                            <h1 className="text-lg font-black tracking-widest text-amber-500 uppercase leading-none -mt-1">Expediente</h1>
+                        </div>
+                    )}
                 </div>
             </div>
 
             <div className="flex-1 overflow-y-auto py-6">
                 <nav className="space-y-1 px-4">
-                    <p className="px-2 text-xs font-semibold text-zinc-500 uppercase tracking-widest mb-4">Menu Principal</p>
+                    {!isCollapsed && <p className="px-2 text-xs font-semibold text-zinc-500 uppercase tracking-widest mb-4">Menu Principal</p>}
                     {filteredNavigation.map((item) => {
                         const isActive = pathname === item.href
                         return (
@@ -141,12 +161,13 @@ export function Sidebar() {
                             >
                                 <item.icon
                                     className={cn(
-                                        'mr-3 h-5 w-5 flex-shrink-0 transition-colors',
+                                        'h-5 w-5 flex-shrink-0 transition-colors',
+                                        !isCollapsed && 'mr-3',
                                         isActive ? 'text-amber-500' : 'text-zinc-500 group-hover:text-amber-500'
                                     )}
                                     aria-hidden="true"
                                 />
-                                {item.name}
+                                {!isCollapsed && <span className="animate-in slide-in-from-left-2 duration-300 whitespace-nowrap">{item.name}</span>}
                             </Link>
                         )
                     })}
@@ -158,8 +179,8 @@ export function Sidebar() {
                     onClick={handleLogout}
                     className="group flex w-full items-center rounded-sm px-2 py-2 text-sm font-medium text-zinc-400 hover:text-white transition-colors"
                 >
-                    <LogOut className="mr-3 h-5 w-5 text-zinc-500 group-hover:text-red-500 transition-colors" />
-                    Cerrar Sesión
+                    <LogOut className={cn("h-5 w-5 text-zinc-500 group-hover:text-red-500 transition-colors", !isCollapsed && "mr-3")} />
+                    {!isCollapsed && <span>Cerrar Sesión</span>}
                 </button>
             </div>
         </div>
